@@ -44,7 +44,9 @@ export default async function EventDetailPage({
       description,
       created_by,
       created_at,
-      profiles!events_created_by_fkey ( full_name )
+      practice_plan_id,
+      profiles!events_created_by_fkey ( full_name ),
+      practice_plans ( id, title, duration_min )
     `,
     )
     .eq('id', params.eventId)

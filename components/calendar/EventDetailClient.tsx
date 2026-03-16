@@ -17,11 +17,13 @@ import {
   Swords,
   User,
   Clock,
+  ClipboardList,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { format, parseISO } from 'date-fns';
 import { Badge, ConfirmDialog, Modal, Field } from '@/components/ui';
 import { cancelEvent, updateEvent, deleteEvent } from '@/actions/events';
+import Link from 'next/link';
 
 // ── Types ─────────────────────────────────────────────────────
 interface EventDetail {
@@ -37,7 +39,13 @@ interface EventDetail {
   description: string | null;
   created_by: string;
   created_at: string;
+  practice_plan_id: string | null;
   profiles: { full_name: string } | null;
+  practice_plans: {
+    id: string;
+    title: string;
+    duration_min: number | null;
+  } | null;
 }
 
 const EVENT_TYPE_CONFIG = {
@@ -248,6 +256,51 @@ export function EventDetailClient({
           <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
             {event.description}
           </p>
+        </div>
+      )}
+
+      {/* Linked practice plan — shown for practice events */}
+      {event.event_type === 'practice' && (
+        <div className="card p-5">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <ClipboardList size={14} className="text-brand-500" />
+            Practice Plan
+          </h2>
+          {event.practice_plans ? (
+            <Link
+              href={`/practices/${event.practice_plans.id}`}
+              className="flex items-center justify-between p-3 rounded-xl bg-brand-50 border border-brand-200 hover:border-brand-400 transition-colors group"
+            >
+              <div>
+                <div className="text-sm font-medium text-brand-800 group-hover:text-brand-900">
+                  {event.practice_plans.title}
+                </div>
+                {event.practice_plans.duration_min && (
+                  <div className="text-xs text-brand-600 mt-0.5 flex items-center gap-1">
+                    <Clock size={10} />
+                    {event.practice_plans.duration_min} min
+                  </div>
+                )}
+              </div>
+              <span className="text-brand-400 group-hover:text-brand-600 transition-colors">
+                →
+              </span>
+            </Link>
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-400">
+                No practice plan linked yet.
+              </p>
+              {isCoach && (
+                <Link
+                  href="/practices"
+                  className="text-xs text-brand-600 hover:underline font-medium"
+                >
+                  Go to Plans →
+                </Link>
+              )}
+            </div>
+          )}
         </div>
       )}
 
