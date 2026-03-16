@@ -5,6 +5,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { generateInviteCode } from '@/lib/utils/invite';
 
 // ── Add single player ─────────────────────────────────────────
 const addPlayerSchema = z.object({
@@ -66,7 +67,7 @@ export async function addPlayer(input: AddPlayerInput) {
       grad_year: gradYear ?? null,
       ladder_rank: ladderRank ?? null,
       invited_email: invitedEmail || null,
-      // team_member_id and profile_id will be null until claimed
+      claim_code: generateInviteCode(), // auto-generate claim code on creation
       team_member_id: null,
       profile_id: null,
     })

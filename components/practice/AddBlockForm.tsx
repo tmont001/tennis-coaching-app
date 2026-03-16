@@ -1,0 +1,202 @@
+'use client';
+// components/practice/AddBlockForm.tsx
+
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { Field } from '@/components/ui';
+import { addPracticeBlock } from '@/actions/practices';
+import type { PracticeBlock } from '@/components/practice/PracticeDetailClient';
+
+const schema = z.object({
+  blockType: z.enum(['warmup', 'drill', 'game', 'cooldown', 'other']),
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  durationMin: z.string().min(1, 'Duration is required'),
+});
+
+type FormValues = z.infer<typeof schema>;
+
+const BLOCK_TYPE_SUGGESTIONS: Record<string, string[]> = {
+  warmup: [
+    'Dynamic Stretching',
+    'Light Jogging',
+    'Mini Tennis',
+    'Footwork Ladder',
+  ],
+  drill: [
+    'Cross-Court Forehands',
+    'Serve Practice',
+    'Volley Drill',
+    'Approach Shots',
+  ],
+  game: [
+    'King of the Court',
+    'Live Ball Rally',
+    'Tiebreak Sets',
+    'Round Robin',
+  ],
+  cooldown: ['Static Stretching', 'Team Huddle', 'Recovery Jog'],
+  other: ['Film Review', 'Strategy Discussion', 'Fitness Testing'],
+};
+
+export function AddBlockForm({
+  planId,
+  teamId,
+  nextSortOrder,
+  onSuccess,
+}: {
+  planId: string;
+  teamId: string;
+  nextSortOrder: number;
+  onSuccess: (block: PracticeBlock) => void;
+}) {
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { blockType: 'drill', durationMin: '15' },
+  });
+
+  const blockType = watch('blockType');
+  const suggestions = BLOCK_TYPE_SUGGESTIONS[blockType] ?? [];
+
+  async function onSubmit(values: FormValues) {
+    setServerError(null);
+    const result = await addPracticeBlock(teamId, {
+      practicePlanId: planId,
+      blockType: values.blockType,
+      title: values.title,
+      description: values.description || null,
+      durationMin: parseInt(values.durationMin),
+      sortOrder: nextSortOrder,
+    });
+
+    if (result.error) {
+      setServerError(result.error);
+      return;
+    }
+
+    // Return the new block to parent for optimistic update
+    onSuccess({
+      id: result.data!.id,
+      block_type: values.blockType,
+      title: values.title,
+      description: values.description || null,
+      duration_min: parseInt(values.durationMin),
+      sort_order: nextSortOrder,
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {serverError && (
+        <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          {serverError}
+        </div>
+      )}
+
+      <Field label="Block type" htmlFor="blockType">
+        <select id="blockType" className="input" {...register('blockType')}>
+          <option value="warmup">Warmup</option>
+          <option value="drill">Drill</option>
+          <option value="game">Game</option>
+          <option value="cooldown">Cooldown</option>
+          <option value="other">Other</option>
+        </select>
+      </Field>
+
+      <Field label="Title" htmlFor="title" error={errors.title?.message}>
+        <input
+          id="title"
+          type="text"
+          className="input"
+          placeholder="e.g. Cross-Court Forehands"
+          {...register('title')}
+        />
+        {/* Quick suggestions */}
+        {suggestions.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-1.5">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setValue('title', s)}
+                className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-600 hover:bg-brand-100 hover:text-brand-700 transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+      </Field>
+
+      <Field
+        label="Duration"
+        htmlFor="durationMin"
+        error={errors.durationMin?.message}
+      >
+        <div className="relative">
+          <input
+            id="durationMin"
+            type="number"
+            className="input pr-12"
+            placeholder="15"
+            min={1}
+            max={120}
+            {...register('durationMin')}
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+            min
+          </span>
+        </div>
+        {/* Quick duration buttons */}
+        <div className="flex gap-1.5 mt-1.5">
+          {[5, 10, 15, 20, 30].map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setValue('durationMin', String(d))}
+              className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-600 hover:bg-brand-100 hover:text-brand-700 transition-colors"
+            >
+              {d}m
+            </button>
+          ))}
+        </div>
+      </Field>
+
+      <Field label="Description" htmlFor="description" optional>
+        <textarea
+          id="description"
+          rows={2}
+          className="input resize-none"
+          placeholder="Instructions, court setup, coaching points…"
+          {...register('description')}
+        />
+      </Field>
+
+      <button
+        type="submit"
+        className="btn-primary w-full"
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 size={15} className="animate-spin" />
+            Adding…
+          </>
+        ) : (
+          'Add block'
+        )}
+      </button>
+    </form>
+  );
+}

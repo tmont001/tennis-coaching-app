@@ -44,6 +44,8 @@ export default async function PlayerProfilePage({
       notes_public,
       profile_id,
       team_id,
+      claim_code,
+      claimed_at,
       profiles (
         id,
         full_name,
