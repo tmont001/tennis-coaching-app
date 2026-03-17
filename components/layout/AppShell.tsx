@@ -53,7 +53,7 @@ const NAV_ITEMS: NavItem[] = [
     coachOnly: true,
     mobileHide: true,
   },
-  { href: '/settings', label: 'Settings', icon: Settings, mobileHide: true },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 interface AppShellProps {

@@ -26,8 +26,7 @@ export default async function RosterPage() {
 
   if (!membership) redirect('/onboarding');
 
-  // Fetch all players on the team
-  // Players may have a linked profile (claimed) or just a display_name (unclaimed)
+  // Fetch all players with their profiles
   const { data: players } = await (supabase as any)
     .from('players')
     .select(
@@ -53,10 +52,67 @@ export default async function RosterPage() {
     .eq('team_id', membership.team_id)
     .order('ladder_rank', { ascending: true, nullsFirst: false });
 
+  // Fetch live W-L records from match_lines for all players on this team
+  const { data: lineResults } = await (supabase as any)
+    .from('match_lines')
+    .select('player1_id, player2_id, result, line_type')
+    .eq('team_id', membership.team_id)
+    .in('result', ['win', 'loss']);
+
+  // Build a map of playerId -> { singlesW, singlesL, doublesW, doublesL }
+  type Record = {
+    singlesW: number;
+    singlesL: number;
+    doublesW: number;
+    doublesL: number;
+  };
+  const recordMap: Map<string, Record> = new Map();
+
+  function addResult(
+    playerId: string | null,
+    lineType: string,
+    result: string,
+  ) {
+    if (!playerId) return;
+    if (!recordMap.has(playerId)) {
+      recordMap.set(playerId, {
+        singlesW: 0,
+        singlesL: 0,
+        doublesW: 0,
+        doublesL: 0,
+      });
+    }
+    const r = recordMap.get(playerId)!;
+    if (lineType === 'singles') {
+      if (result === 'win') r.singlesW++;
+      else r.singlesL++;
+    } else {
+      if (result === 'win') r.doublesW++;
+      else r.doublesL++;
+    }
+  }
+
+  for (const line of lineResults ?? []) {
+    addResult(line.player1_id, line.line_type, line.result);
+    addResult(line.player2_id, line.line_type, line.result);
+  }
+
+  // Merge live records into player objects
+  const playersWithRecords = (players ?? []).map((p: any) => {
+    const live = recordMap.get(p.id);
+    return {
+      ...p,
+      singles_record_w: live?.singlesW ?? 0,
+      singles_record_l: live?.singlesL ?? 0,
+      doubles_record_w: live?.doublesW ?? 0,
+      doubles_record_l: live?.doublesL ?? 0,
+    };
+  });
+
   return (
     <div>
       <RosterClient
-        players={players ?? []}
+        players={playersWithRecords}
         teamId={membership.team_id}
         isCoach={membership.role === 'coach'}
       />

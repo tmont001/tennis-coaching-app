@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Plus, Trophy, Minus, Equal } from 'lucide-react';
 import { clsx } from 'clsx';
 import { format, parseISO } from 'date-fns';
@@ -165,59 +166,58 @@ export function MatchesClient({
             const dateStr = format(parseISO(match.match_date), 'MMM d, yyyy');
 
             return (
-              <div
-                key={match.id}
-                className="card px-4 py-3 flex items-center gap-3 group"
-              >
-                {/* Result badge */}
-                <div
-                  className={clsx(
-                    'w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold border flex-shrink-0',
-                    config.color,
+              <Link key={match.id} href={`/matches/${match.id}`}>
+                <div className="card px-4 py-3 flex items-center gap-3 group hover:border-brand-300 hover:shadow-sm transition-all cursor-pointer">
+                  {/* Result badge */}
+                  <div
+                    className={clsx(
+                      'w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold border flex-shrink-0',
+                      config.color,
+                    )}
+                  >
+                    {config.label}
+                  </div>
+
+                  {/* Match info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-gray-900 truncate">
+                        vs {match.opponent_name}
+                      </span>
+                      <Badge variant={match.is_home ? 'green' : 'gray'}>
+                        {match.is_home ? 'Home' : 'Away'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                      <span className="text-xs text-gray-500">{dateStr}</span>
+                      {match.our_score !== null &&
+                        match.opponent_score !== null && (
+                          <span className="text-xs font-mono text-gray-600">
+                            {match.our_score} – {match.opponent_score}
+                          </span>
+                        )}
+                    </div>
+                  </div>
+
+                  {/* Coach actions */}
+                  {isCoach && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                      <button
+                        onClick={() => setEditingMatch(match)}
+                        className="text-xs text-gray-400 hover:text-brand-600 px-2 py-1 rounded hover:bg-brand-50 transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setDeletingMatch(match)}
+                        className="text-xs text-gray-400 hover:text-red-500 px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   )}
-                >
-                  {config.label}
                 </div>
-
-                {/* Match info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-gray-900 truncate">
-                      vs {match.opponent_name}
-                    </span>
-                    <Badge variant={match.is_home ? 'green' : 'gray'}>
-                      {match.is_home ? 'Home' : 'Away'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                    <span className="text-xs text-gray-500">{dateStr}</span>
-                    {match.our_score !== null &&
-                      match.opponent_score !== null && (
-                        <span className="text-xs font-mono text-gray-600">
-                          {match.our_score} – {match.opponent_score}
-                        </span>
-                      )}
-                  </div>
-                </div>
-
-                {/* Coach actions */}
-                {isCoach && (
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                    <button
-                      onClick={() => setEditingMatch(match)}
-                      className="text-xs text-gray-400 hover:text-brand-600 px-2 py-1 rounded hover:bg-brand-50 transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => setDeletingMatch(match)}
-                      className="text-xs text-gray-400 hover:text-red-500 px-2 py-1 rounded hover:bg-red-50 transition-colors"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
+              </Link>
             );
           })}
         </div>
