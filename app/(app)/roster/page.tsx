@@ -52,26 +52,32 @@ export default async function RosterPage() {
     .eq('team_id', membership.team_id)
     .order('ladder_rank', { ascending: true, nullsFirst: false });
 
-  // Fetch live W-L records from match_lines for all players on this team
+  // Fetch live W-L records AND sets from match_lines for all players on this team
   const { data: lineResults } = await (supabase as any)
     .from('match_lines')
-    .select('player1_id, player2_id, result, line_type')
+    .select('player1_id, player2_id, result, line_type, sets_won, sets_lost')
     .eq('team_id', membership.team_id)
     .in('result', ['win', 'loss']);
 
-  // Build a map of playerId -> { singlesW, singlesL, doublesW, doublesL }
-  type Record = {
+  // Build a map of playerId -> record totals
+  type PlayerRecord = {
     singlesW: number;
     singlesL: number;
     doublesW: number;
     doublesL: number;
+    singlesSetsW: number;
+    singlesSetsL: number;
+    doublesSetsW: number;
+    doublesSetsL: number;
   };
-  const recordMap: Map<string, Record> = new Map();
+  const recordMap: Map<string, PlayerRecord> = new Map();
 
   function addResult(
     playerId: string | null,
     lineType: string,
     result: string,
+    setsWon: number | null,
+    setsLost: number | null,
   ) {
     if (!playerId) return;
     if (!recordMap.has(playerId)) {
@@ -80,21 +86,41 @@ export default async function RosterPage() {
         singlesL: 0,
         doublesW: 0,
         doublesL: 0,
+        singlesSetsW: 0,
+        singlesSetsL: 0,
+        doublesSetsW: 0,
+        doublesSetsL: 0,
       });
     }
     const r = recordMap.get(playerId)!;
     if (lineType === 'singles') {
       if (result === 'win') r.singlesW++;
       else r.singlesL++;
+      r.singlesSetsW += setsWon ?? 0;
+      r.singlesSetsL += setsLost ?? 0;
     } else {
       if (result === 'win') r.doublesW++;
       else r.doublesL++;
+      r.doublesSetsW += setsWon ?? 0;
+      r.doublesSetsL += setsLost ?? 0;
     }
   }
 
   for (const line of lineResults ?? []) {
-    addResult(line.player1_id, line.line_type, line.result);
-    addResult(line.player2_id, line.line_type, line.result);
+    addResult(
+      line.player1_id,
+      line.line_type,
+      line.result,
+      line.sets_won,
+      line.sets_lost,
+    );
+    addResult(
+      line.player2_id,
+      line.line_type,
+      line.result,
+      line.sets_won,
+      line.sets_lost,
+    );
   }
 
   // Merge live records into player objects
@@ -106,6 +132,10 @@ export default async function RosterPage() {
       singles_record_l: live?.singlesL ?? 0,
       doubles_record_w: live?.doublesW ?? 0,
       doubles_record_l: live?.doublesL ?? 0,
+      singles_sets_won: live?.singlesSetsW ?? 0,
+      singles_sets_lost: live?.singlesSetsL ?? 0,
+      doubles_sets_won: live?.doublesSetsW ?? 0,
+      doubles_sets_lost: live?.doublesSetsL ?? 0,
     };
   });
 

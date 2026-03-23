@@ -18,6 +18,10 @@ export interface RosterPlayer {
   singles_record_l: number;
   doubles_record_w: number;
   doubles_record_l: number;
+  singles_sets_won: number;
+  singles_sets_lost: number;
+  doubles_sets_won: number;
+  doubles_sets_lost: number;
   grad_year: number | null;
   invited_email: string | null;
   notes_public: string | null;

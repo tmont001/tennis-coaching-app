@@ -21,8 +21,10 @@ import { Badge, Modal, ConfirmDialog } from '@/components/ui';
 import { LogMatchForm } from '@/components/matches/LogMatchForm';
 import { LineupSlot } from '@/components/matches/LineupSlot';
 import { deleteMatch } from '@/actions/matches';
-import { copyLineupFromMatch, upsertMatchLine } from '@/actions/match_lines';
-import { saveLadderConfirmPreference } from '@/actions/challenges';
+import {
+  copyLineupFromMatch,
+  saveLineupCopyPreference,
+} from '@/actions/lineup';
 
 // ── Types ─────────────────────────────────────────────────────
 export interface MatchLine {
@@ -31,6 +33,8 @@ export interface MatchLine {
   position: number;
   result: 'win' | 'loss' | 'not_played' | null;
   score: string | null;
+  sets_won: number | null;
+  sets_lost: number | null;
   player1: {
     id: string;
     display_name: string | null;
@@ -178,11 +182,7 @@ export function MatchDetailClient({
     if (!previousMatch) return;
     setCopyLoading(true);
     if (skipNext) {
-      // Save preference to profiles
-      await fetch('/api/preferences', {
-        method: 'POST',
-        body: JSON.stringify({ skip_lineup_copy_prompt: true }),
-      }).catch(() => {});
+      await saveLineupCopyPreference(true);
       setSkipCopyPrompt(true);
     }
     const result = await copyLineupFromMatch(

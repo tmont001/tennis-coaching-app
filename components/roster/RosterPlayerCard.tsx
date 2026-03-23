@@ -27,7 +27,13 @@ export function RosterPlayerCard({
   const isClaimed = player.profile_id !== null;
 
   const singlesRecord = `${player.singles_record_w}-${player.singles_record_l}`;
-  const hasRecord = player.singles_record_w > 0 || player.singles_record_l > 0;
+  const doublesRecord = `${player.doubles_record_w}-${player.doubles_record_l}`;
+  const hasSingles = player.singles_record_w > 0 || player.singles_record_l > 0;
+  const hasDoubles = player.doubles_record_w > 0 || player.doubles_record_l > 0;
+  const hasSinglesSets =
+    player.singles_sets_won > 0 || player.singles_sets_lost > 0;
+  const hasDoublesSets =
+    player.doubles_sets_won > 0 || player.doubles_sets_lost > 0;
 
   // Initials for avatar fallback
   const initials = name
@@ -82,9 +88,24 @@ export function RosterPlayerCard({
                 '{String(player.grad_year).slice(-2)}
               </span>
             )}
-            {hasRecord && (
+            {hasSingles && (
               <span className="text-xs text-gray-500">
-                {singlesRecord} singles
+                S: {singlesRecord}
+                {hasSinglesSets && (
+                  <span className="text-gray-400 ml-1">
+                    ({player.singles_sets_won}–{player.singles_sets_lost} sets)
+                  </span>
+                )}
+              </span>
+            )}
+            {hasDoubles && (
+              <span className="text-xs text-gray-500">
+                D: {doublesRecord}
+                {hasDoublesSets && (
+                  <span className="text-gray-400 ml-1">
+                    ({player.doubles_sets_won}–{player.doubles_sets_lost} sets)
+                  </span>
+                )}
               </span>
             )}
             {player.invited_email && isCoach && !isClaimed && (

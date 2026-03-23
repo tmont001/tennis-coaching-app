@@ -24,7 +24,7 @@ import {
   updateTeamSettings,
   removeTeamMember,
   regenerateInviteCode,
-} from '@/actions/match_lines';
+} from '@/actions/team_settings';
 
 // ── Types ─────────────────────────────────────────────────────
 interface Team {
