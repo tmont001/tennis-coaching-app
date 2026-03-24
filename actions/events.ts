@@ -1,12 +1,10 @@
 'use server';
 // actions/events.ts
-// Server actions for all calendar event mutations.
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
-// ── Create event ──────────────────────────────────────────────
 const eventSchema = z.object({
   teamId: z.string().uuid(),
   title: z.string().min(1, 'Title is required'),
@@ -14,6 +12,8 @@ const eventSchema = z.object({
   startsAt: z.string().min(1, 'Start date/time is required'),
   endsAt: z.string().optional().nullable(),
   location: z.string().optional().nullable(),
+  locationLat: z.number().optional().nullable(),
+  locationLng: z.number().optional().nullable(),
   opponentName: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
   isHome: z.boolean().default(true),
@@ -33,7 +33,6 @@ export async function createEvent(input: EventInput) {
 
   const { teamId, ...fields } = parsed.data;
 
-  // Only coaches can create events
   const { data: membership } = await (supabase as any)
     .from('team_members')
     .select('role')
@@ -55,6 +54,8 @@ export async function createEvent(input: EventInput) {
       starts_at: fields.startsAt,
       ends_at: fields.endsAt ?? null,
       location: fields.location ?? null,
+      location_lat: fields.locationLat ?? null,
+      location_lng: fields.locationLng ?? null,
       opponent_name: fields.opponentName ?? null,
       description: fields.description ?? null,
       is_home: fields.isHome,
@@ -72,7 +73,6 @@ export async function createEvent(input: EventInput) {
   return { data: event };
 }
 
-// ── Update event ──────────────────────────────────────────────
 const updateEventSchema = eventSchema
   .extend({
     eventId: z.string().uuid(),
@@ -127,7 +127,6 @@ export async function updateEvent(input: UpdateEventInput) {
   return { data: { success: true } };
 }
 
-// ── Cancel event (soft delete) ────────────────────────────────
 export async function cancelEvent(eventId: string, teamId: string) {
   const supabase = createClient();
   const {
@@ -159,7 +158,6 @@ export async function cancelEvent(eventId: string, teamId: string) {
   return { data: { success: true } };
 }
 
-// ── Hard delete event ─────────────────────────────────────────
 export async function deleteEvent(eventId: string, teamId: string) {
   const supabase = createClient();
   const {

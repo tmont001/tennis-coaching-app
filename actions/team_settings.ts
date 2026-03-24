@@ -25,6 +25,8 @@ const teamSettingsSchema = z.object({
   seasonYear: z.coerce.number().int().min(2020).max(2040).optional().nullable(),
   singlesCount: z.coerce.number().int().min(1).max(10),
   doublesCount: z.coerce.number().int().min(1).max(10),
+  showReactionNames: z.boolean().optional(), // ← add this
+  parentsCanReact: z.boolean().optional(),
 });
 
 export type TeamSettingsInput = z.infer<typeof teamSettingsSchema>;

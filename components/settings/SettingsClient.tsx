@@ -51,6 +51,8 @@ const settingsSchema = z.object({
   seasonYear: z.string().optional(),
   singlesCount: z.string().min(1),
   doublesCount: z.string().min(1),
+  showReactionNames: z.boolean().optional(),
+  parentsCanReact: z.boolean().optional(),
 });
 
 type FormValues = z.infer<typeof settingsSchema>;
@@ -102,6 +104,8 @@ export function SettingsClient({
       seasonYear: values.seasonYear ? parseInt(values.seasonYear) : null,
       singlesCount: parseInt(values.singlesCount),
       doublesCount: parseInt(values.doublesCount),
+      showReactionNames: values.showReactionNames ?? false,
+      parentsCanReact: values.parentsCanReact ?? true,
     });
     if (result.error) {
       setSaveError(result.error);
@@ -250,6 +254,45 @@ export function SettingsClient({
                 Example: NYS is typically 3 singles + 4 doubles. Small school
                 playoffs may use 2 + 3.
               </p>
+            </div>
+
+            {/* Reaction settings */}
+            <div className="pt-2 border-t border-gray-100">
+              <p className="text-sm font-medium text-gray-700 mb-3">
+                Reactions
+              </p>
+              <div className="space-y-3">
+                <label className="flex items-center justify-between gap-3 cursor-pointer">
+                  <div>
+                    <span className="text-sm text-gray-700">
+                      Show who reacted
+                    </span>
+                    <p className="text-xs text-gray-400">
+                      Display names on hover instead of just counts
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="accent-brand-600 w-4 h-4"
+                    {...register('showReactionNames')}
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3 cursor-pointer">
+                  <div>
+                    <span className="text-sm text-gray-700">
+                      Parents can react
+                    </span>
+                    <p className="text-xs text-gray-400">
+                      Allow parents to react to posts
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="accent-brand-600 w-4 h-4"
+                    {...register('parentsCanReact')}
+                  />
+                </label>
+              </div>
             </div>
 
             <button

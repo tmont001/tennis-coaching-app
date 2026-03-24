@@ -1,7 +1,5 @@
 'use client';
 // components/feed/FeedClient.tsx
-// The main team feed. Shows pinned posts first, then all posts
-// ordered by recency. Coaches and players can post.
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -10,20 +8,25 @@ import { PageHeader, EmptyState, Modal } from '@/components/ui';
 import { AnnouncementCard } from '@/components/feed/AnnouncementCard';
 import { CreatePostForm } from '@/components/feed/CreatePostForm';
 
+export interface ReactionData {
+  id: string;
+  emoji: string;
+  profile_id: string;
+  profiles: { full_name: string } | null;
+}
+
 export interface FeedAnnouncement {
   id: string;
   title: string | null;
   body: string;
   image_url: string | null;
+  video_url: string | null;
   pinned: boolean;
   created_at: string;
   author_id: string;
-  profiles: {
-    id: string;
-    full_name: string;
-    avatar_url: string | null;
-  } | null;
+  profiles: { id: string; full_name: string; avatar_url: string | null } | null;
   announcement_comments: { count: number }[];
+  announcement_reactions: ReactionData[];
 }
 
 interface FeedClientProps {
@@ -32,6 +35,8 @@ interface FeedClientProps {
   currentUserId: string;
   isCoach: boolean;
   canPost: boolean;
+  canReact: boolean;
+  showReactionNames: boolean;
 }
 
 export function FeedClient({
@@ -40,6 +45,8 @@ export function FeedClient({
   currentUserId,
   isCoach,
   canPost,
+  canReact,
+  showReactionNames,
 }: FeedClientProps) {
   const router = useRouter();
   const [showPostModal, setShowPostModal] = useState(false);
@@ -87,7 +94,6 @@ export function FeedClient({
         />
       ) : (
         <div className="space-y-6">
-          {/* Pinned posts */}
           {pinned.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
@@ -103,6 +109,8 @@ export function FeedClient({
                   teamId={teamId}
                   currentUserId={currentUserId}
                   isCoach={isCoach}
+                  canReact={canReact}
+                  showReactionNames={showReactionNames}
                   onDeleted={() => router.refresh()}
                   onPinToggled={() => router.refresh()}
                 />
@@ -110,7 +118,6 @@ export function FeedClient({
             </div>
           )}
 
-          {/* Regular posts */}
           {regular.length > 0 && (
             <div className="space-y-3">
               {pinned.length > 0 && (
@@ -128,6 +135,8 @@ export function FeedClient({
                   teamId={teamId}
                   currentUserId={currentUserId}
                   isCoach={isCoach}
+                  canReact={canReact}
+                  showReactionNames={showReactionNames}
                   onDeleted={() => router.refresh()}
                   onPinToggled={() => router.refresh()}
                 />
@@ -137,7 +146,6 @@ export function FeedClient({
         </div>
       )}
 
-      {/* Create post modal */}
       <Modal
         open={showPostModal}
         onClose={() => setShowPostModal(false)}
