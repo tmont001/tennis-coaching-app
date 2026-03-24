@@ -25,8 +25,8 @@ const teamSettingsSchema = z.object({
   seasonYear: z.coerce.number().int().min(2020).max(2040).optional().nullable(),
   singlesCount: z.coerce.number().int().min(1).max(10),
   doublesCount: z.coerce.number().int().min(1).max(10),
-  showReactionNames: z.boolean().optional(), // ← add this
-  parentsCanReact: z.boolean().optional(),
+  showReactionNames: z.boolean().optional().default(false),
+  parentsCanReact: z.boolean().optional().default(true),
 });
 
 export type TeamSettingsInput = z.infer<typeof teamSettingsSchema>;
@@ -56,6 +56,8 @@ export async function updateTeamSettings(input: TeamSettingsInput) {
       season_year: parsed.data.seasonYear ?? null,
       singles_count: parsed.data.singlesCount,
       doubles_count: parsed.data.doublesCount,
+      show_reaction_names: parsed.data.showReactionNames ?? false,
+      parents_can_react: parsed.data.parentsCanReact ?? true,
     })
     .eq('id', parsed.data.teamId);
 
