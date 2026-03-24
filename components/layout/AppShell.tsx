@@ -1,8 +1,6 @@
 'use client';
 // components/layout/AppShell.tsx
-// The main authenticated layout shell.
-// Desktop: fixed left sidebar + main content area.
-// Mobile: top header + scrollable content + bottom tab bar.
+// Main authenticated layout shell with team switcher.
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -21,16 +19,20 @@ import {
   X,
 } from 'lucide-react';
 import type { TeamContext } from '@/lib/types/app.types';
-import { isCoach, canViewCoachNotes } from '@/lib/utils/roles';
+import { isCoach } from '@/lib/utils/roles';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import {
+  TeamSwitcher,
+  type TeamOption,
+} from '@/components/layout/TeamSwitcher';
 
 interface NavItem {
   href: string;
   label: string;
   icon: React.ElementType;
   coachOnly?: boolean;
-  mobileHide?: boolean; // hide from mobile bottom nav (max 5 items)
+  mobileHide?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -58,10 +60,11 @@ const NAV_ITEMS: NavItem[] = [
 
 interface AppShellProps {
   teamContext: TeamContext;
+  allTeams: TeamOption[];
   children: React.ReactNode;
 }
 
-export function AppShell({ teamContext, children }: AppShellProps) {
+export function AppShell({ teamContext, allTeams, children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -84,18 +87,16 @@ export function AppShell({ teamContext, children }: AppShellProps) {
     <div className="min-h-screen flex bg-gray-50">
       {/* ── Desktop sidebar ─────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-60 fixed inset-y-0 left-0 bg-white border-r border-gray-200 z-30">
-        {/* Brand */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-100">
-          <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-sm font-bold">C</span>
-          </div>
-          <div className="min-w-0">
-            <div className="text-sm font-semibold text-gray-900 truncate">
-              {teamContext.teamName}
-            </div>
-            <div className="text-xs text-gray-400 capitalize">
-              {teamContext.role}
-            </div>
+        {/* Team switcher — replaces static brand header */}
+        <div className="px-3 pt-3 pb-2 border-b border-gray-100">
+          <TeamSwitcher
+            currentTeamId={teamContext.teamId}
+            currentTeamName={teamContext.teamName}
+            allTeams={allTeams}
+            isCreator={teamContext.isCreator}
+          />
+          <div className="text-xs text-gray-400 capitalize px-2 mt-0.5">
+            {teamContext.role}
           </div>
         </div>
 
@@ -136,14 +137,13 @@ export function AppShell({ teamContext, children }: AppShellProps) {
 
       {/* ── Mobile header ────────────────────────────────── */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 h-14 bg-white border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">C</span>
-          </div>
-          <span className="text-sm font-semibold text-gray-900 truncate max-w-[180px]">
-            {teamContext.teamName}
-          </span>
-        </div>
+        {/* Compact team switcher on mobile header */}
+        <TeamSwitcher
+          currentTeamId={teamContext.teamId}
+          currentTeamName={teamContext.teamName}
+          allTeams={allTeams}
+          isCreator={teamContext.isCreator}
+        />
         <button
           onClick={() => setMobileMenuOpen(true)}
           className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
@@ -161,10 +161,18 @@ export function AppShell({ teamContext, children }: AppShellProps) {
           />
           <div className="relative w-64 bg-white flex flex-col h-full shadow-xl">
             <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
-              <span className="font-semibold text-gray-900">Menu</span>
+              {/* Team switcher in mobile menu too */}
+              <div className="flex-1 mr-2">
+                <TeamSwitcher
+                  currentTeamId={teamContext.teamId}
+                  currentTeamName={teamContext.teamName}
+                  allTeams={allTeams}
+                  isCreator={teamContext.isCreator}
+                />
+              </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-1 text-gray-400 hover:text-gray-600"
+                className="p-1 text-gray-400 hover:text-gray-600 flex-shrink-0"
               >
                 <X size={20} />
               </button>
@@ -264,7 +272,6 @@ export function UserAvatar({
     md: 'w-9 h-9 text-sm',
     lg: 'w-12 h-12 text-base',
   };
-
   const initials = name
     .split(' ')
     .map((n) => n[0])

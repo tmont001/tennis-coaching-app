@@ -202,3 +202,34 @@ export async function importPlayersFromCsv(
   revalidatePath('/roster');
   return { data: { imported: playersToInsert.length } };
 }
+
+// ── Delete player ─────────────────────────────────────────────
+export async function deletePlayer(playerId: string, teamId: string) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data: membership } = await (supabase as any)
+    .from('team_members')
+    .select('role')
+    .eq('team_id', teamId)
+    .eq('profile_id', user.id)
+    .single();
+
+  if (!membership || membership.role !== 'coach') {
+    return { error: 'Only coaches can remove players' };
+  }
+
+  const { error } = await (supabase as any)
+    .from('players')
+    .delete()
+    .eq('id', playerId)
+    .eq('team_id', teamId);
+
+  if (error) return { error: 'Failed to remove player.' };
+
+  revalidatePath('/roster');
+  return { data: { success: true } };
+}

@@ -21,6 +21,7 @@ export interface TeamContext {
   profileId: string;
   fullName: string;
   avatarUrl: string | null;
+  isCreator: boolean; // true if this user created the team (can delete it)
 }
 
 // A profile with their role on the current team.
@@ -104,7 +105,7 @@ export interface ChallengeWithPlayers {
   score: string | null;
   createdAt: string;
   challenger: {
-    id: string; // players.id
+    id: string;
     ladderRank: number | null;
     profile: { fullName: string; avatarUrl: string | null };
   };

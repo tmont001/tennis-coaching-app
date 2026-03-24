@@ -16,6 +16,7 @@ import {
 import { Badge, Modal } from '@/components/ui';
 import { EditPlayerForm } from '@/components/roster/EditPlayerForm';
 import { generateClaimCode } from '@/actions/claim';
+import { deletePlayer } from '@/actions/roster';
 
 interface Player {
   id: string;
