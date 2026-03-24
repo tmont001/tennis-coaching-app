@@ -12,12 +12,14 @@ import {
   Copy,
   Check,
   RefreshCw,
+  Trash2,
 } from 'lucide-react';
-import { Badge, Modal } from '@/components/ui';
+import { Badge, Modal, ConfirmDialog } from '@/components/ui';
 import { EditPlayerForm } from '@/components/roster/EditPlayerForm';
 import { generateClaimCode } from '@/actions/claim';
 import { deletePlayer } from '@/actions/roster';
 
+// ── Types ─────────────────────────────────────────────────────
 interface Player {
   id: string;
   display_name: string | null;
@@ -45,6 +47,7 @@ interface Player {
   } | null;
 }
 
+// ── Component ─────────────────────────────────────────────────
 export function PlayerProfileClient({
   player,
   isCoach,
@@ -55,17 +58,25 @@ export function PlayerProfileClient({
   teamId: string;
 }) {
   const router = useRouter();
+
+  // Modal / dialog state
   const [showEditModal, setShowEditModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Claim code state
   const [copied, setCopied] = useState(false);
   const [currentClaimCode, setCurrentClaimCode] = useState(player.claim_code);
   const [generatingCode, setGeneratingCode] = useState(false);
 
+  // Delete state
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Derived values
   const name =
     player.profiles?.full_name ?? player.display_name ?? 'Unnamed Player';
   const avatarUrl = player.profiles?.avatar_url ?? null;
   const isClaimed = player.profile_id !== null;
-
   const initials = name
     .split(' ')
     .map((n) => n[0])
@@ -81,6 +92,7 @@ export function PlayerProfileClient({
 
   const claimUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/claim?code=${currentClaimCode}`;
 
+  // ── Handlers ────────────────────────────────────────────────
   async function handleCopy() {
     if (!currentClaimCode) return;
     await navigator.clipboard.writeText(currentClaimCode);
@@ -97,6 +109,16 @@ export function PlayerProfileClient({
     }
   }
 
+  async function handleDelete() {
+    setDeleteLoading(true);
+    const result = await deletePlayer(player.id, teamId);
+    setDeleteLoading(false);
+    if (result.error) return;
+    setShowDeleteDialog(false);
+    router.push('/roster');
+  }
+
+  // ── Render ───────────────────────────────────────────────────
   return (
     <div className="space-y-5 max-w-lg">
       {/* Back button */}
@@ -108,9 +130,10 @@ export function PlayerProfileClient({
         Back to Roster
       </button>
 
-      {/* Profile header card */}
+      {/* ── Profile header card ─────────────────────────────── */}
       <div className="card p-5">
         <div className="flex items-start justify-between gap-4">
+          {/* Avatar + name */}
           <div className="flex items-center gap-4">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -146,13 +169,24 @@ export function PlayerProfileClient({
             </div>
           </div>
 
+          {/* Coach action buttons — edit + delete */}
           {isCoach && (
-            <button
-              onClick={() => setShowEditModal(true)}
-              className="btn-secondary p-2 flex-shrink-0"
-            >
-              <Edit2 size={15} />
-            </button>
+            <div className="flex gap-2 flex-shrink-0">
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="btn-secondary p-2"
+                title="Edit player"
+              >
+                <Edit2 size={15} />
+              </button>
+              <button
+                onClick={() => setShowDeleteDialog(true)}
+                className="btn-secondary p-2 text-red-500 hover:text-red-700 hover:border-red-300"
+                title="Remove player"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
           )}
         </div>
 
@@ -175,7 +209,7 @@ export function PlayerProfileClient({
         )}
       </div>
 
-      {/* Claim code card — coach only, unclaimed players */}
+      {/* ── Claim code card — coach only, unclaimed players ─── */}
       {isCoach && !isClaimed && (
         <div className="card p-5 border-yellow-200 bg-yellow-50/50">
           <div className="flex items-start justify-between gap-3 mb-3">
@@ -242,34 +276,51 @@ export function PlayerProfileClient({
         </div>
       )}
 
-      {/* Stats card */}
+      {/* ── Stats card ──────────────────────────────────────── */}
       <div className="card p-5">
         <h2 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
           <TrendingUp size={15} />
           Season Record
         </h2>
         <div className="grid grid-cols-2 gap-4">
+          {/* Singles */}
           <div className="text-center p-4 bg-gray-50 rounded-xl">
             <div className="text-2xl font-bold text-gray-900">
               {player.singles_record_w}–{player.singles_record_l}
             </div>
-            <div className="text-xs text-gray-500 mt-1">Singles</div>
+            <div className="text-xs text-gray-500 mt-1">Singles W-L</div>
             {singlesWinPct !== null && (
               <div className="text-xs text-brand-600 font-medium mt-0.5">
                 {singlesWinPct}% win rate
               </div>
             )}
+            {((player.singles_sets_won ?? 0) > 0 ||
+              (player.singles_sets_lost ?? 0) > 0) && (
+              <div className="text-xs text-gray-400 mt-1">
+                {player.singles_sets_won ?? 0}–{player.singles_sets_lost ?? 0}{' '}
+                sets
+              </div>
+            )}
           </div>
+
+          {/* Doubles */}
           <div className="text-center p-4 bg-gray-50 rounded-xl">
             <div className="text-2xl font-bold text-gray-900">
               {player.doubles_record_w}–{player.doubles_record_l}
             </div>
-            <div className="text-xs text-gray-500 mt-1">Doubles</div>
+            <div className="text-xs text-gray-500 mt-1">Doubles W-L</div>
+            {((player.doubles_sets_won ?? 0) > 0 ||
+              (player.doubles_sets_lost ?? 0) > 0) && (
+              <div className="text-xs text-gray-400 mt-1">
+                {player.doubles_sets_won ?? 0}–{player.doubles_sets_lost ?? 0}{' '}
+                sets
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Bio */}
+      {/* ── Bio / public notes ──────────────────────────────── */}
       {player.notes_public && (
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-2">About</h2>
@@ -279,7 +330,7 @@ export function PlayerProfileClient({
         </div>
       )}
 
-      {/* Edit modal */}
+      {/* ── Edit modal ──────────────────────────────────────── */}
       <Modal
         open={showEditModal}
         onClose={() => setShowEditModal(false)}
@@ -292,7 +343,7 @@ export function PlayerProfileClient({
         />
       </Modal>
 
-      {/* QR code modal */}
+      {/* ── QR code modal ───────────────────────────────────── */}
       {currentClaimCode && (
         <Modal
           open={showQrModal}
@@ -305,7 +356,6 @@ export function PlayerProfileClient({
               Have {name.split(' ')[0]} scan this QR code to claim their
               profile.
             </p>
-            {/* QR code via free API — no package needed */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(claimUrl)}`}
@@ -325,6 +375,18 @@ export function PlayerProfileClient({
           </div>
         </Modal>
       )}
+
+      {/* ── Delete confirm dialog ────────────────────────────── */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDelete}
+        loading={deleteLoading}
+        title="Remove this player?"
+        description={`${name} will be removed from the roster. Their match history and notes will also be deleted. This cannot be undone.`}
+        confirmLabel="Remove player"
+        confirmVariant="danger"
+      />
     </div>
   );
 }
