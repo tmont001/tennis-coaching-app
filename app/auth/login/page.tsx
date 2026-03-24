@@ -29,6 +29,16 @@ export default function LoginPage({
 
         <div className="card p-6">
           <LoginForm redirectTo={searchParams.redirectTo} />
+
+          {/* Forgot password link — inside the card, below the form */}
+          <p className="text-center text-sm text-gray-500 mt-4">
+            <Link
+              href="/auth/forgot-password"
+              className="text-brand-600 font-medium hover:underline"
+            >
+              Forgot your password?
+            </Link>
+          </p>
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-6">
