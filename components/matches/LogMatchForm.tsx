@@ -14,7 +14,7 @@ import type { Match } from '@/components/matches/MatchesClient';
 const schema = z.object({
   opponentName: z.string().min(1, 'Opponent name is required'),
   matchDate: z.string().min(1, 'Date is required'),
-  isHome: z.string().default('true'),
+  isHome: z.enum(['true', 'false']).default('true'),
   result: z.enum(['win', 'loss', 'tie', 'cancelled', 'pending']),
   ourScore: z.string().optional(),
   opponentScore: z.string().optional(),
@@ -40,7 +40,7 @@ export function LogMatchForm({
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
+  } = useForm({
     resolver: zodResolver(schema),
     defaultValues: existingMatch
       ? {

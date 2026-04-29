@@ -41,7 +41,7 @@ export async function createMatch(input: CreateMatchInput) {
   if (!user) return { error: 'Not authenticated' };
 
   const parsed = createMatchSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.errors[0].message };
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const isCoach = await verifyCoach(
     supabase as any,

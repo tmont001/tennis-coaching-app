@@ -29,7 +29,7 @@ export async function createEvent(input: EventInput) {
   if (!user) return { error: 'Not authenticated' };
 
   const parsed = eventSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.errors[0].message };
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const { teamId, ...fields } = parsed.data;
 

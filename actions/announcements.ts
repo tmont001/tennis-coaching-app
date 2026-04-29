@@ -25,7 +25,7 @@ export async function createAnnouncement(input: CreateAnnouncementInput) {
   if (!user) return { error: 'Not authenticated' };
 
   const parsed = createSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.errors[0].message };
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const { teamId, title, body, imageUrl, videoUrl } = parsed.data;
 
@@ -135,7 +135,7 @@ export async function addComment(input: z.infer<typeof commentSchema>) {
   if (!user) return { error: 'Not authenticated' };
 
   const parsed = commentSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.errors[0].message };
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const { data, error } = await (supabase as any)
     .from('announcement_comments')

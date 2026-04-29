@@ -63,6 +63,7 @@ interface Match {
   opponent_score: number | null;
   result: 'win' | 'loss' | 'tie' | 'cancelled' | 'pending';
   notes: string | null;
+  created_at: string;
 }
 
 const RESULT_CONFIG = {
@@ -133,6 +134,8 @@ export function MatchDetailClient({
         score: null,
         player1: null,
         player2: null,
+        sets_won: null,
+        sets_lost: null,
       });
     }
     for (let i = 1; i <= team.doubles_count; i++) {
@@ -143,6 +146,8 @@ export function MatchDetailClient({
         score: null,
         player1: null,
         player2: null,
+        sets_won: null,
+        sets_lost: null,
       });
     }
     return result;

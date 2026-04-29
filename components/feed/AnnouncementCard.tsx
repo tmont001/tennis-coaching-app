@@ -134,7 +134,7 @@ export function AnnouncementCard({
     const val = e.target.value;
     if (!val) return;
     // Take only the last character entered (the emoji)
-    const emoji = [...val].slice(-1)[0];
+    const emoji = Array.from(val).slice(-1)[0];
     if (emoji && emoji.trim()) {
       handleReact(emoji);
     }

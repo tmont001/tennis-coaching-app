@@ -35,7 +35,7 @@ export async function createPracticePlan(input: CreatePlanInput) {
   if (!user) return { error: 'Not authenticated' };
 
   const parsed = createPlanSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.errors[0].message };
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const isCoach = await verifyCoach(
     supabase as any,
@@ -147,7 +147,7 @@ export async function addPracticeBlock(teamId: string, input: BlockInput) {
   if (!user) return { error: 'Not authenticated' };
 
   const parsed = blockSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.errors[0].message };
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const isCoach = await verifyCoach(supabase as any, teamId, user.id);
   if (!isCoach) return { error: 'Only coaches can add blocks' };

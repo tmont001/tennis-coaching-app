@@ -31,7 +31,7 @@ export async function createNote(input: z.infer<typeof createNoteSchema>) {
   if (!user) return { error: 'Not authenticated' };
 
   const parsed = createNoteSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.errors[0].message };
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const isCoach = await verifyCoach(
     supabase as any,

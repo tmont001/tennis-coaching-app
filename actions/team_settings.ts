@@ -39,7 +39,7 @@ export async function updateTeamSettings(input: TeamSettingsInput) {
   if (!user) return { error: 'Not authenticated' };
 
   const parsed = teamSettingsSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.errors[0].message };
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const isCoach = await verifyCoach(
     supabase as any,

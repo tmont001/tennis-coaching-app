@@ -42,7 +42,7 @@ export async function upsertMatchLine(input: LineInput) {
   if (!user) return { error: 'Not authenticated' };
 
   const parsed = lineSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.errors[0].message };
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const isCoach = await verifyCoach(
     supabase as any,

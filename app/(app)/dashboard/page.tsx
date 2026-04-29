@@ -56,6 +56,8 @@ export default async function DashboardPage() {
       currentUserId={user.id}
       isCoach={membership.role === 'coach'}
       canPost={membership.role === 'coach' || membership.role === 'player'}
+      canReact={true}
+      showReactionNames={false}
     />
   );
 }

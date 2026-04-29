@@ -27,7 +27,7 @@ export async function addPlayer(input: AddPlayerInput) {
   if (!user) return { error: 'Not authenticated' };
 
   const parsed = addPlayerSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.errors[0].message };
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const {
     teamId,
@@ -113,7 +113,7 @@ export async function updatePlayer(input: UpdatePlayerInput) {
   if (!user) return { error: 'Not authenticated' };
 
   const parsed = updatePlayerSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.errors[0].message };
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const { playerId, teamId, ...updates } = parsed.data;
 

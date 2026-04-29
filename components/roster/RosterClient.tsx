@@ -1,14 +1,25 @@
 'use client';
 // components/roster/RosterClient.tsx
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
-import { UserPlus, Upload, Trophy, ArrowUpDown, BarChart2 } from 'lucide-react';
-import { PageHeader, EmptyState, Modal, Badge } from '@/components/ui';
+import {
+  UserPlus,
+  Upload,
+  Trophy,
+  ArrowUpDown,
+  BarChart2,
+  Trash2,
+  X,
+  Loader2,
+} from 'lucide-react';
+import { PageHeader, EmptyState, Modal } from '@/components/ui';
 import { AddPlayerForm } from '@/components/roster/AddPlayerForm';
 import { CsvImportForm } from '@/components/roster/CsvImportForm';
 import { RosterPlayerCard } from '@/components/roster/RosterPlayerCard';
 import { RosterStatsTable } from '@/components/roster/RosterStatsTable';
+import { deletePlayer } from '@/actions/roster';
 
 export interface RosterPlayer {
   id: string;
@@ -36,17 +47,25 @@ export interface RosterPlayer {
 type SortMode = 'rank' | 'alpha';
 type TabMode = 'roster' | 'stats';
 
-interface RosterClientProps {
+export function RosterClient({
+  players,
+  teamId,
+  isCoach,
+}: {
   players: RosterPlayer[];
   teamId: string;
   isCoach: boolean;
-}
-
-export function RosterClient({ players, teamId, isCoach }: RosterClientProps) {
+}) {
+  const router = useRouter();
   const [tab, setTab] = useState<TabMode>('roster');
   const [sortMode, setSortMode] = useState<SortMode>('rank');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, startBulkDelete] = useTransition();
+  const [bulkError, setBulkError] = useState<string | null>(null);
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
 
   const sorted = [...players].sort((a, b) => {
     if (sortMode === 'rank') {
@@ -55,13 +74,61 @@ export function RosterClient({ players, teamId, isCoach }: RosterClientProps) {
       if (b.ladder_rank === null) return -1;
       return a.ladder_rank - b.ladder_rank;
     }
-    const nameA = (a.profiles?.full_name ?? a.display_name ?? '').toLowerCase();
-    const nameB = (b.profiles?.full_name ?? b.display_name ?? '').toLowerCase();
-    return nameA.localeCompare(nameB);
+    const na = (a.profiles?.full_name ?? a.display_name ?? '').toLowerCase();
+    const nb = (b.profiles?.full_name ?? b.display_name ?? '').toLowerCase();
+    return na.localeCompare(nb);
   });
 
   const playerCount = players.length;
   const claimedCount = players.filter((p) => p.profile_id !== null).length;
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelected(
+      selected.size === sorted.length
+        ? new Set()
+        : new Set(sorted.map((p) => p.id)),
+    );
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelected(new Set());
+    setBulkError(null);
+  }
+
+  function handleBulkDeleteConfirm() {
+    setBulkError(null);
+    startBulkDelete(async () => {
+      const ids = Array.from(selected);
+      const results = await Promise.all(
+        ids.map((id) => deletePlayer(id, teamId)),
+      );
+      const failed = results.filter((r) => r.error);
+      if (failed.length > 0) {
+        setBulkError(
+          `Failed to remove ${failed.length} player${failed.length !== 1 ? 's' : ''}. Try again.`,
+        );
+      } else {
+        setShowBulkConfirm(false);
+        exitSelectMode();
+        router.refresh();
+      }
+    });
+  }
+
+  const selectedNames = sorted
+    .filter((p) => selected.has(p.id))
+    .slice(0, 3)
+    .map((p) => p.profiles?.full_name ?? p.display_name ?? 'Player')
+    .join(', ');
 
   return (
     <div className="space-y-5">
@@ -75,26 +142,71 @@ export function RosterClient({ players, teamId, isCoach }: RosterClientProps) {
         action={
           isCoach ? (
             <div className="flex gap-2">
-              <button
-                onClick={() => setShowImportModal(true)}
-                className="btn-secondary gap-2"
-              >
-                <Upload size={15} />
-                <span className="hidden sm:inline">Import CSV</span>
-              </button>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="btn-primary gap-2"
-              >
-                <UserPlus size={15} />
-                <span className="hidden sm:inline">Add Player</span>
-              </button>
+              {!selectMode ? (
+                <>
+                  <button
+                    onClick={() => setSelectMode(true)}
+                    className="btn-secondary gap-2 text-sm"
+                    title="Select players to remove"
+                  >
+                    <Trash2 size={14} />
+                    <span className="hidden sm:inline">Select</span>
+                  </button>
+                  <button
+                    onClick={() => setShowImportModal(true)}
+                    className="btn-secondary gap-2"
+                  >
+                    <Upload size={15} />
+                    <span className="hidden sm:inline">Import CSV</span>
+                  </button>
+                  <button
+                    onClick={() => setShowAddModal(true)}
+                    className="btn-primary gap-2"
+                  >
+                    <UserPlus size={15} />
+                    <span className="hidden sm:inline">Add Player</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={exitSelectMode}
+                    className="btn-secondary gap-2 text-sm"
+                  >
+                    <X size={14} />
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => setShowBulkConfirm(true)}
+                    disabled={selected.size === 0 || bulkDeleting}
+                    className="btn-danger gap-2 text-sm"
+                  >
+                    <Trash2 size={14} />
+                    Remove {selected.size > 0 ? `(${selected.size})` : ''}
+                  </button>
+                </>
+              )}
             </div>
           ) : undefined
         }
       />
 
-      {/* Tab toggle: Roster | Stats */}
+      {selectMode && sorted.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-brand-50 border border-brand-200 rounded-xl text-sm">
+          <input
+            type="checkbox"
+            className="accent-brand-600 w-4 h-4"
+            checked={selected.size === sorted.length}
+            onChange={toggleSelectAll}
+          />
+          <span className="text-brand-700 font-medium">
+            {selected.size === 0
+              ? 'Select players to remove'
+              : `${selected.size} of ${sorted.length} selected`}
+          </span>
+        </div>
+      )}
+
       <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 w-fit">
         <button
           onClick={() => setTab('roster')}
@@ -122,10 +234,9 @@ export function RosterClient({ players, teamId, isCoach }: RosterClientProps) {
         </button>
       </div>
 
-      {/* ── Roster tab ─────────────────────────────────────── */}
       {tab === 'roster' && (
         <>
-          {playerCount > 0 && (
+          {!selectMode && playerCount > 0 && (
             <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 w-fit">
               <button
                 onClick={() => setSortMode('rank')}
@@ -185,20 +296,35 @@ export function RosterClient({ players, teamId, isCoach }: RosterClientProps) {
           ) : (
             <div className="space-y-2">
               {sorted.map((player) => (
-                <RosterPlayerCard
-                  key={player.id}
-                  player={player}
-                  rank={sortMode === 'rank' ? player.ladder_rank : null}
-                  isCoach={isCoach}
-                  teamId={teamId}
-                />
+                <div key={player.id} className="flex items-center gap-2">
+                  {selectMode && (
+                    <input
+                      type="checkbox"
+                      className="accent-brand-600 w-4 h-4 flex-shrink-0"
+                      checked={selected.has(player.id)}
+                      onChange={() => toggleSelected(player.id)}
+                    />
+                  )}
+                  <div
+                    className={clsx('flex-1', selectMode && 'cursor-pointer')}
+                    onClick={
+                      selectMode ? () => toggleSelected(player.id) : undefined
+                    }
+                  >
+                    <RosterPlayerCard
+                      player={player}
+                      rank={sortMode === 'rank' ? player.ladder_rank : null}
+                      isCoach={isCoach}
+                      teamId={teamId}
+                    />
+                  </div>
+                </div>
               ))}
             </div>
           )}
         </>
       )}
 
-      {/* ── Stats tab ──────────────────────────────────────── */}
       {tab === 'stats' && <RosterStatsTable players={players} />}
 
       <Modal
@@ -208,10 +334,12 @@ export function RosterClient({ players, teamId, isCoach }: RosterClientProps) {
       >
         <AddPlayerForm
           teamId={teamId}
-          onSuccess={() => setShowAddModal(false)}
+          onSuccess={() => {
+            setShowAddModal(false);
+            router.refresh();
+          }}
         />
       </Modal>
-
       <Modal
         open={showImportModal}
         onClose={() => setShowImportModal(false)}
@@ -220,9 +348,66 @@ export function RosterClient({ players, teamId, isCoach }: RosterClientProps) {
       >
         <CsvImportForm
           teamId={teamId}
-          onSuccess={() => setShowImportModal(false)}
+          onSuccess={() => {
+            setShowImportModal(false);
+            router.refresh();
+          }}
         />
       </Modal>
+
+      {showBulkConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowBulkConfirm(false)}
+          />
+          <div className="relative bg-white w-full max-w-sm rounded-t-2xl sm:rounded-2xl shadow-xl p-5 space-y-4">
+            <h2 className="text-base font-semibold text-gray-900">
+              Remove {selected.size} player{selected.size !== 1 ? 's' : ''}?
+            </h2>
+            <p className="text-sm text-gray-600">
+              <span className="font-medium">
+                {selectedNames}
+                {selected.size > 3 ? ` and ${selected.size - 3} others` : ''}
+              </span>{' '}
+              will be permanently removed from the roster along with their match
+              history and notes.
+            </p>
+            {bulkError && (
+              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                {bulkError}
+              </div>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowBulkConfirm(false)}
+                className="btn-secondary"
+                disabled={bulkDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDeleteConfirm}
+                className="btn-danger gap-2"
+                disabled={bulkDeleting}
+              >
+                {bulkDeleting ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Removing…
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    Remove {selected.size} player
+                    {selected.size !== 1 ? 's' : ''}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
