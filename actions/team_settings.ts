@@ -6,6 +6,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { generateInviteCode } from '@/lib/utils/invite';
 
 async function verifyCoach(supabase: any, teamId: string, userId: string) {
   const { data } = await supabase
@@ -102,11 +103,7 @@ export async function regenerateInviteCode(teamId: string) {
   const isCoach = await verifyCoach(supabase as any, teamId, user.id);
   if (!isCoach) return { error: 'Only coaches can regenerate the invite code' };
 
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
+  const code = generateInviteCode();
 
   const { error } = await (supabase as any)
     .from('teams')

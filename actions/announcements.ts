@@ -74,6 +74,30 @@ export async function deleteAnnouncement(
   } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  const { data: announcement } = await (supabase as any)
+    .from('announcements')
+    .select('author_id')
+    .eq('id', announcementId)
+    .eq('team_id', teamId)
+    .single();
+
+  if (!announcement) return { error: 'Post not found.' };
+
+  const isAuthor = announcement.author_id === user.id;
+
+  if (!isAuthor) {
+    const { data: membership } = await (supabase as any)
+      .from('team_members')
+      .select('role')
+      .eq('team_id', teamId)
+      .eq('profile_id', user.id)
+      .single();
+
+    if (!membership || membership.role !== 'coach') {
+      return { error: 'Only the author or a coach can delete this post.' };
+    }
+  }
+
   const { error } = await (supabase as any)
     .from('announcements')
     .delete()
@@ -163,6 +187,37 @@ export async function deleteComment(commentId: string) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
+
+  const { data: comment } = await (supabase as any)
+    .from('announcement_comments')
+    .select('author_id, announcement_id')
+    .eq('id', commentId)
+    .single();
+
+  if (!comment) return { error: 'Comment not found.' };
+
+  const isAuthor = comment.author_id === user.id;
+
+  if (!isAuthor) {
+    const { data: announcement } = await (supabase as any)
+      .from('announcements')
+      .select('team_id')
+      .eq('id', comment.announcement_id)
+      .single();
+
+    if (!announcement) return { error: 'Post not found.' };
+
+    const { data: membership } = await (supabase as any)
+      .from('team_members')
+      .select('role')
+      .eq('team_id', announcement.team_id)
+      .eq('profile_id', user.id)
+      .single();
+
+    if (!membership || membership.role !== 'coach') {
+      return { error: 'Only the author or a coach can delete this comment.' };
+    }
+  }
 
   const { error } = await (supabase as any)
     .from('announcement_comments')
