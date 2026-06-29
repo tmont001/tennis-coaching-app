@@ -45,6 +45,7 @@ export function AddPlayerForm({
         : undefined,
       ladderRank: values.ladderRank ? parseInt(values.ladderRank) : undefined,
       invitedEmail: values.invitedEmail || undefined,
+      status: 'active',
     });
 
     if (result.error) {

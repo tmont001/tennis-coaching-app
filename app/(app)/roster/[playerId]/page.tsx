@@ -35,6 +35,7 @@ export default async function PlayerProfilePage({
       id,
       display_name,
       ladder_rank,
+      status,
       singles_record_w,
       singles_record_l,
       doubles_record_w,

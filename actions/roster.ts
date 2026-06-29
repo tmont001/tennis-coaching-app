@@ -8,6 +8,8 @@ import { z } from 'zod';
 import { generateInviteCode } from '@/lib/utils/invite';
 
 // ── Add single player ─────────────────────────────────────────
+const playerStatusEnum = z.enum(['active', 'injured', 'inactive']);
+
 const addPlayerSchema = z.object({
   teamId: z.string().uuid(),
   displayName: z.string().min(1, 'Name is required'),
@@ -15,6 +17,7 @@ const addPlayerSchema = z.object({
   jerseyNumber: z.coerce.number().int().min(0).max(999).optional(),
   ladderRank: z.coerce.number().int().min(1).optional(),
   invitedEmail: z.string().email().optional().or(z.literal('')),
+  status: playerStatusEnum.optional().default('active'),
 });
 
 export type AddPlayerInput = z.infer<typeof addPlayerSchema>;
@@ -36,6 +39,7 @@ export async function addPlayer(input: AddPlayerInput) {
     jerseyNumber,
     ladderRank,
     invitedEmail,
+    status,
   } = parsed.data;
 
   // Verify the caller is a coach on this team
@@ -67,7 +71,8 @@ export async function addPlayer(input: AddPlayerInput) {
       grad_year: gradYear ?? null,
       ladder_rank: ladderRank ?? null,
       invited_email: invitedEmail || null,
-      claim_code: generateInviteCode(), // auto-generate claim code on creation
+      status,
+      claim_code: generateInviteCode(),
       team_member_id: null,
       profile_id: null,
     })
@@ -101,6 +106,7 @@ const updatePlayerSchema = z.object({
   ladderRank: z.coerce.number().int().optional().nullable(),
   invitedEmail: z.string().email().optional().nullable().or(z.literal('')),
   notesPublic: z.string().optional().nullable(),
+  status: playerStatusEnum.optional(),
 });
 
 export type UpdatePlayerInput = z.infer<typeof updatePlayerSchema>;
@@ -136,6 +142,7 @@ export async function updatePlayer(input: UpdatePlayerInput) {
       ladder_rank: updates.ladderRank,
       invited_email: updates.invitedEmail || null,
       notes_public: updates.notesPublic,
+      ...(updates.status !== undefined && { status: updates.status }),
     })
     .eq('id', playerId)
     .eq('team_id', teamId);

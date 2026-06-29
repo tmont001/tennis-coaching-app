@@ -23,6 +23,7 @@ interface Player {
   id: string;
   display_name: string | null;
   ladder_rank: number | null;
+  status: 'active' | 'injured' | 'inactive';
   singles_record_w: number;
   singles_record_l: number;
   doubles_record_w: number;

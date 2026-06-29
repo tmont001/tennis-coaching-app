@@ -24,10 +24,13 @@ import { RosterPlayerCard } from '@/components/roster/RosterPlayerCard';
 import { RosterStatsTable } from '@/components/roster/RosterStatsTable';
 import { deletePlayer } from '@/actions/roster';
 
+export type PlayerStatus = 'active' | 'injured' | 'inactive';
+
 export interface RosterPlayer {
   id: string;
   display_name: string | null;
   ladder_rank: number | null;
+  status: PlayerStatus;
   singles_record_w: number;
   singles_record_l: number;
   doubles_record_w: number;
@@ -85,6 +88,7 @@ export function RosterClient({
   const [bulkDeleting, startBulkDelete] = useTransition();
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<PlayerStatus | 'all'>('all');
 
   function handleSortClick(field: SortField) {
     if (sortField === field) {
@@ -95,14 +99,26 @@ export function RosterClient({
     }
   }
 
+  const statusCounts = {
+    all: players.length,
+    active: players.filter((p) => p.status === 'active').length,
+    injured: players.filter((p) => p.status === 'injured').length,
+    inactive: players.filter((p) => p.status === 'inactive').length,
+  };
+
+  const afterStatusFilter =
+    statusFilter === 'all'
+      ? players
+      : players.filter((p) => p.status === statusFilter);
+
   const searchLower = search.toLowerCase().trim();
 
   const filtered = searchLower
-    ? players.filter((p) => {
+    ? afterStatusFilter.filter((p) => {
         const name = getPlayerName(p).toLowerCase();
         return name.includes(searchLower);
       })
-    : players;
+    : afterStatusFilter;
 
   const dir = sortDir === 'asc' ? 1 : -1;
 
@@ -282,6 +298,30 @@ export function RosterClient({
 
       {tab === 'roster' && (
         <>
+          {!selectMode && playerCount > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {(['all', 'active', 'injured', 'inactive'] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={clsx(
+                    'px-3 py-1.5 rounded-full text-xs font-medium transition-colors border',
+                    statusFilter === s
+                      ? s === 'injured'
+                        ? 'bg-red-50 text-red-700 border-red-200'
+                        : s === 'inactive'
+                          ? 'bg-gray-100 text-gray-700 border-gray-300'
+                          : 'bg-brand-50 text-brand-700 border-brand-200'
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300',
+                  )}
+                >
+                  {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+                  <span className="ml-1 text-gray-400">{statusCounts[s]}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
           {!selectMode && playerCount > 0 && (
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               <div className="relative w-full sm:w-64">

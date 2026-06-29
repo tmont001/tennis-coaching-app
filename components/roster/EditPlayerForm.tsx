@@ -15,6 +15,7 @@ const schema = z.object({
   ladderRank: z.string().optional(),
   invitedEmail: z.string().email('Invalid email').optional().or(z.literal('')),
   notesPublic: z.string().optional(),
+  status: z.enum(['active', 'injured', 'inactive']),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -27,6 +28,7 @@ interface EditPlayerFormProps {
     grad_year: number | null;
     invited_email: string | null;
     notes_public: string | null;
+    status: 'active' | 'injured' | 'inactive';
     profiles: { full_name: string } | null;
   };
   teamId: string;
@@ -54,6 +56,7 @@ export function EditPlayerForm({
       ladderRank: player.ladder_rank?.toString() ?? '',
       invitedEmail: player.invited_email ?? '',
       notesPublic: player.notes_public ?? '',
+      status: player.status,
     },
   });
 
@@ -67,6 +70,7 @@ export function EditPlayerForm({
       ladderRank: values.ladderRank ? parseInt(values.ladderRank) : null,
       invitedEmail: values.invitedEmail || null,
       notesPublic: values.notesPublic || null,
+      status: values.status,
     });
 
     if (result.error) {
@@ -130,6 +134,14 @@ export function EditPlayerForm({
           className="input"
           {...register('invitedEmail')}
         />
+      </Field>
+
+      <Field label="Status" htmlFor="status">
+        <select id="status" className="input" {...register('status')}>
+          <option value="active">Active</option>
+          <option value="injured">Injured</option>
+          <option value="inactive">Inactive</option>
+        </select>
       </Field>
 
       <Field label="Player bio / notes" htmlFor="notesPublic" optional>

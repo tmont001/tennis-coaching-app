@@ -77,6 +77,12 @@ export function RosterPlayerCard({
             <span className="text-sm font-medium text-gray-900 group-hover:text-brand-700 transition-colors truncate">
               {name}
             </span>
+            {player.status === 'injured' && (
+              <Badge variant="red">Injured</Badge>
+            )}
+            {player.status === 'inactive' && (
+              <Badge variant="gray">Inactive</Badge>
+            )}
             {!isClaimed && isCoach && <Badge variant="yellow">Unclaimed</Badge>}
             {isClaimed && (
               <UserCheck size={13} className="text-green-500 flex-shrink-0" />
