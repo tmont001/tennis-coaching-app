@@ -210,14 +210,13 @@ export async function recordChallengeResult(
 
 // ── Apply rank swap (step 2) ──────────────────────────────────
 // Called after coach confirms the rank change modal.
-// Atomically swaps ranks and logs both changes.
+// Delegates to a database RPC that atomically swaps ranks,
+// logs history, and rolls back if any step fails.
 export async function applyRankSwap(
   challengeId: string,
   teamId: string,
   challengerId: string,
   challengedId: string,
-  challengerOldRank: number,
-  challengedOldRank: number,
 ) {
   const supabase = createClient();
   const {
@@ -228,52 +227,16 @@ export async function applyRankSwap(
   const isCoach = await verifyCoach(supabase as any, teamId, user.id);
   if (!isCoach) return { error: 'Only coaches can apply rank swaps' };
 
-  // Swap challenger's rank to challenged's old rank (moves up)
-  const { error: e1 } = await (supabase as any)
-    .from('players')
-    .update({ ladder_rank: challengedOldRank })
-    .eq('id', challengerId)
-    .eq('team_id', teamId);
+  const { data, error } = await (supabase as any).rpc('swap_ladder_ranks', {
+    p_challenge_id: challengeId,
+    p_team_id: teamId,
+    p_challenger_id: challengerId,
+    p_challenged_id: challengedId,
+    p_changed_by: user.id,
+  });
 
-  if (e1) return { error: 'Failed to update challenger rank.' };
-
-  // Swap challenged's rank to challenger's old rank (moves down)
-  const { error: e2 } = await (supabase as any)
-    .from('players')
-    .update({ ladder_rank: challengerOldRank })
-    .eq('id', challengedId)
-    .eq('team_id', teamId);
-
-  if (e2) return { error: 'Failed to update challenged rank.' };
-
-  // Log both rank changes to ladder_history
-  const { error: historyError } = await (supabase as any)
-    .from('ladder_history')
-    .insert([
-      {
-        team_id: teamId,
-        player_id: challengerId,
-        old_rank: challengerOldRank,
-        new_rank: challengedOldRank,
-        reason: 'challenge_result',
-        challenge_id: challengeId,
-        changed_by: user.id,
-      },
-      {
-        team_id: teamId,
-        player_id: challengedId,
-        old_rank: challengedOldRank,
-        new_rank: challengerOldRank,
-        reason: 'challenge_result',
-        challenge_id: challengeId,
-        changed_by: user.id,
-      },
-    ]);
-
-  if (historyError) {
-    console.error('ladder_history insert:', historyError);
-    // Non-fatal — ranks were swapped successfully, just log the error
-  }
+  if (error) return { error: 'Failed to swap ranks. Please try again.' };
+  if (data?.error) return { error: data.error };
 
   revalidatePath('/challenges');
   revalidatePath('/roster');

@@ -66,6 +66,7 @@ export default async function ChallengesPage() {
       scheduled_date,
       score,
       created_at,
+      updated_at,
       winner_id,
       challenger:players!challenges_challenger_id_fkey (
         id, ladder_rank, display_name,

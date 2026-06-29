@@ -14,7 +14,7 @@ import {
   Trophy,
   Loader2,
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import {
   PageHeader,
   EmptyState,
@@ -48,6 +48,7 @@ export interface ChallengeRow {
   scheduled_date: string | null;
   score: string | null;
   created_at: string;
+  updated_at: string;
   winner_id: string | null;
   challenger: {
     id: string;
@@ -153,8 +154,6 @@ export function ChallengesClient({
       teamId,
       preview.challenger.id,
       preview.challenged.id,
-      preview.challenger.oldRank,
-      preview.challenged.oldRank,
     );
     setApplyingSwap(false);
     setSwapPreview(null);
@@ -536,6 +535,14 @@ function ChallengeCard({
               <span className="text-xs text-green-600 font-medium flex items-center gap-1">
                 <Trophy size={11} />
                 {winnerIsChallenger ? challengerName : challengedName} won
+              </span>
+            )}
+            <span className="text-xs text-gray-400">
+              Issued {formatDistanceToNow(parseISO(challenge.created_at), { addSuffix: true })}
+            </span>
+            {isCompleted && challenge.updated_at !== challenge.created_at && (
+              <span className="text-xs text-gray-400">
+                Completed {formatDistanceToNow(parseISO(challenge.updated_at), { addSuffix: true })}
               </span>
             )}
           </div>
