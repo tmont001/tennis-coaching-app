@@ -8,11 +8,14 @@ import {
   UserPlus,
   Upload,
   Trophy,
-  ArrowUpDown,
+  GraduationCap,
+  Search,
   BarChart2,
   Trash2,
   X,
   Loader2,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { PageHeader, EmptyState, Modal } from '@/components/ui';
 import { AddPlayerForm } from '@/components/roster/AddPlayerForm';
@@ -44,8 +47,22 @@ export interface RosterPlayer {
   } | null;
 }
 
-type SortMode = 'rank' | 'alpha';
+type SortField = 'rank' | 'first' | 'last' | 'grade';
+type SortDir = 'asc' | 'desc';
 type TabMode = 'roster' | 'stats';
+
+function getPlayerName(p: RosterPlayer): string {
+  return p.profiles?.full_name ?? p.display_name ?? '';
+}
+
+function getFirstName(p: RosterPlayer): string {
+  return getPlayerName(p).split(' ')[0]?.toLowerCase() ?? '';
+}
+
+function getLastName(p: RosterPlayer): string {
+  const parts = getPlayerName(p).split(' ');
+  return (parts.length > 1 ? parts[parts.length - 1] : parts[0])?.toLowerCase() ?? '';
+}
 
 export function RosterClient({
   players,
@@ -58,7 +75,9 @@ export function RosterClient({
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<TabMode>('roster');
-  const [sortMode, setSortMode] = useState<SortMode>('rank');
+  const [sortField, setSortField] = useState<SortField>('rank');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
@@ -67,16 +86,43 @@ export function RosterClient({
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
 
-  const sorted = [...players].sort((a, b) => {
-    if (sortMode === 'rank') {
+  function handleSortClick(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  }
+
+  const searchLower = search.toLowerCase().trim();
+
+  const filtered = searchLower
+    ? players.filter((p) => {
+        const name = getPlayerName(p).toLowerCase();
+        return name.includes(searchLower);
+      })
+    : players;
+
+  const dir = sortDir === 'asc' ? 1 : -1;
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortField === 'rank') {
       if (a.ladder_rank === null && b.ladder_rank === null) return 0;
       if (a.ladder_rank === null) return 1;
       if (b.ladder_rank === null) return -1;
-      return a.ladder_rank - b.ladder_rank;
+      return (a.ladder_rank - b.ladder_rank) * dir;
     }
-    const na = (a.profiles?.full_name ?? a.display_name ?? '').toLowerCase();
-    const nb = (b.profiles?.full_name ?? b.display_name ?? '').toLowerCase();
-    return na.localeCompare(nb);
+    if (sortField === 'grade') {
+      if (a.grad_year === null && b.grad_year === null) return 0;
+      if (a.grad_year === null) return 1;
+      if (b.grad_year === null) return -1;
+      return (a.grad_year - b.grad_year) * dir;
+    }
+    if (sortField === 'first') {
+      return getFirstName(a).localeCompare(getFirstName(b)) * dir;
+    }
+    return getLastName(a).localeCompare(getLastName(b)) * dir;
   });
 
   const playerCount = players.length;
@@ -237,62 +283,94 @@ export function RosterClient({
       {tab === 'roster' && (
         <>
           {!selectMode && playerCount > 0 && (
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 w-fit">
-              <button
-                onClick={() => setSortMode('rank')}
-                className={clsx(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                  sortMode === 'rank'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700',
-                )}
-              >
-                <Trophy size={13} />
-                By Rank
-              </button>
-              <button
-                onClick={() => setSortMode('alpha')}
-                className={clsx(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                  sortMode === 'alpha'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700',
-                )}
-              >
-                <ArrowUpDown size={13} />
-                A–Z
-              </button>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="relative w-full sm:w-64">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search players…"
+                  className="input pl-9 py-2 text-sm w-full"
+                />
+              </div>
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 w-fit flex-wrap">
+                {([
+                  { field: 'rank' as SortField, label: 'Rank', icon: <Trophy size={13} /> },
+                  { field: 'first' as SortField, label: 'First', icon: null },
+                  { field: 'last' as SortField, label: 'Last', icon: null },
+                  { field: 'grade' as SortField, label: 'Grade', icon: <GraduationCap size={13} /> },
+                ]).map(({ field, label, icon }) => {
+                  const active = sortField === field;
+                  return (
+                    <button
+                      key={field}
+                      onClick={() => handleSortClick(field)}
+                      className={clsx(
+                        'flex items-center gap-1 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors',
+                        active
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700',
+                      )}
+                    >
+                      {icon}
+                      {label}
+                      {active && (
+                        sortDir === 'asc'
+                          ? <ChevronUp size={12} className="text-gray-400" />
+                          : <ChevronDown size={12} className="text-gray-400" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
           {sorted.length === 0 ? (
-            <EmptyState
-              icon="🎾"
-              title="No players yet"
-              description={
-                isCoach
-                  ? 'Add players individually or import your roster from a CSV file.'
-                  : "Your coach hasn't added any players yet."
-              }
-              action={
-                isCoach ? (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setShowImportModal(true)}
-                      className="btn-secondary"
-                    >
-                      Import CSV
-                    </button>
-                    <button
-                      onClick={() => setShowAddModal(true)}
-                      className="btn-primary"
-                    >
-                      Add Player
-                    </button>
-                  </div>
-                ) : undefined
-              }
-            />
+            searchLower ? (
+              <EmptyState
+                icon="🔍"
+                title={`No players match "${search.trim()}"`}
+                description="Try a different name or clear the search."
+                action={
+                  <button
+                    onClick={() => setSearch('')}
+                    className="btn-secondary"
+                  >
+                    Clear search
+                  </button>
+                }
+              />
+            ) : (
+              <EmptyState
+                icon="🎾"
+                title="No players yet"
+                description={
+                  isCoach
+                    ? 'Add players individually or import your roster from a CSV file.'
+                    : "Your coach hasn't added any players yet."
+                }
+                action={
+                  isCoach ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowImportModal(true)}
+                        className="btn-secondary"
+                      >
+                        Import CSV
+                      </button>
+                      <button
+                        onClick={() => setShowAddModal(true)}
+                        className="btn-primary"
+                      >
+                        Add Player
+                      </button>
+                    </div>
+                  ) : undefined
+                }
+              />
+            )
           ) : (
             <div className="space-y-2">
               {sorted.map((player) => (
@@ -313,7 +391,7 @@ export function RosterClient({
                   >
                     <RosterPlayerCard
                       player={player}
-                      rank={sortMode === 'rank' ? player.ladder_rank : null}
+                      rank={sortField === 'rank' ? player.ladder_rank : null}
                       isCoach={isCoach}
                       teamId={teamId}
                     />
