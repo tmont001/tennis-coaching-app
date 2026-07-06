@@ -152,10 +152,13 @@ export function PlayerProfileClient({
                     Class of {player.grad_year}
                   </span>
                 )}
-                {!isClaimed && isCoach && (
-                  <Badge variant="yellow">Unclaimed</Badge>
-                )}
                 {isClaimed && <Badge variant="green">Account linked</Badge>}
+                {!isClaimed && isCoach && player.invited_email && (
+                  <Badge variant="blue">Invite sent</Badge>
+                )}
+                {!isClaimed && isCoach && !player.invited_email && (
+                  <Badge variant="gray">No invite</Badge>
+                )}
               </div>
             </div>
           </div>
@@ -201,17 +204,43 @@ export function PlayerProfileClient({
         )}
       </div>
 
-      {/* Claim code card */}
+      {/* Account / invite status card — coaches only */}
+      {isCoach && isClaimed && player.claimed_at && (
+        <div className="card p-4 border-green-200 bg-green-50/40 flex items-center gap-3">
+          <Check size={16} className="text-green-500 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-green-800">Account linked</p>
+            <p className="text-xs text-green-600 mt-0.5">
+              {name.split(' ')[0]} claimed their profile on{' '}
+              {new Date(player.claimed_at).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </p>
+          </div>
+        </div>
+      )}
+
       {isCoach && !isClaimed && (
-        <div className="card p-5 border-yellow-200 bg-yellow-50/50">
+        <div
+          className={
+            player.invited_email
+              ? 'card p-5 border-blue-200 bg-blue-50/40'
+              : 'card p-5 border-yellow-200 bg-yellow-50/50'
+          }
+        >
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
               <h2 className="text-sm font-semibold text-gray-800">
-                Player Claim Code
+                {player.invited_email
+                  ? 'Invite sent — waiting for claim'
+                  : 'No invite — share this code'}
               </h2>
               <p className="text-xs text-gray-500 mt-0.5">
-                Share this code with {name.split(' ')[0]} so they can link their
-                account.
+                {player.invited_email
+                  ? `Invite was sent to ${player.invited_email}. Share the code below if they haven't received it.`
+                  : `Share this code with ${name.split(' ')[0]} so they can link their account.`}
               </p>
             </div>
             <button

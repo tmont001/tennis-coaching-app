@@ -4,7 +4,7 @@
 
 import Link from 'next/link';
 import { clsx } from 'clsx';
-import { UserCheck, Mail } from 'lucide-react';
+import { UserCheck } from 'lucide-react';
 import { Badge } from '@/components/ui';
 import type { RosterPlayer } from './RosterClient';
 
@@ -83,9 +83,17 @@ export function RosterPlayerCard({
             {player.status === 'inactive' && (
               <Badge variant="gray">Inactive</Badge>
             )}
-            {!isClaimed && isCoach && <Badge variant="yellow">Unclaimed</Badge>}
-            {isClaimed && (
-              <UserCheck size={13} className="text-green-500 flex-shrink-0" />
+            {isCoach && isClaimed && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+                <UserCheck size={12} />
+                Account linked
+              </span>
+            )}
+            {isCoach && !isClaimed && player.invited_email && (
+              <Badge variant="blue">Invite sent</Badge>
+            )}
+            {isCoach && !isClaimed && !player.invited_email && (
+              <Badge variant="gray">No invite</Badge>
             )}
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -112,12 +120,6 @@ export function RosterPlayerCard({
                     ({player.doubles_sets_won}–{player.doubles_sets_lost} sets)
                   </span>
                 )}
-              </span>
-            )}
-            {player.invited_email && isCoach && !isClaimed && (
-              <span className="text-xs text-gray-400 flex items-center gap-0.5">
-                <Mail size={10} />
-                {player.invited_email}
               </span>
             )}
           </div>
