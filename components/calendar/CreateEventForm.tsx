@@ -10,16 +10,21 @@ import { Loader2, MapPin, X } from 'lucide-react';
 import { Field } from '@/components/ui';
 import { createEvent } from '@/actions/events';
 
-const schema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  eventType: z.enum(['practice', 'match', 'meeting', 'other']),
-  date: z.string().min(1, 'Date is required'),
-  startTime: z.string().min(1, 'Start time is required'),
-  endTime: z.string().optional(),
-  description: z.string().optional(),
-  opponentName: z.string().optional(),
-  isHome: z.string().optional(),
-});
+const schema = z
+  .object({
+    title: z.string().min(1, 'Title is required'),
+    eventType: z.enum(['practice', 'match', 'meeting', 'other']),
+    date: z.string().min(1, 'Date is required'),
+    startTime: z.string().min(1, 'Start time is required'),
+    endTime: z.string().optional(),
+    description: z.string().optional(),
+    opponentName: z.string().optional(),
+    isHome: z.string().optional(),
+  })
+  .refine(
+    (data) => !data.endTime || data.endTime > data.startTime,
+    { message: 'End time must be after start time', path: ['endTime'] },
+  );
 
 type FormValues = z.infer<typeof schema>;
 
@@ -185,7 +190,12 @@ export function CreateEventForm({
             {...register('startTime')}
           />
         </Field>
-        <Field label="End time" htmlFor="endTime" optional>
+        <Field
+          label="End time"
+          htmlFor="endTime"
+          optional
+          error={errors.endTime?.message}
+        >
           <input
             id="endTime"
             type="time"

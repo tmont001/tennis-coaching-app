@@ -62,16 +62,22 @@ const STATUS_CONFIG = {
 };
 
 // ── Edit form schema ──────────────────────────────────────────
-const editSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  eventType: z.enum(['practice', 'match', 'meeting', 'other']),
-  date: z.string().min(1, 'Date is required'),
-  startTime: z.string().min(1, 'Start time is required'),
-  endTime: z.string().optional(),
-  location: z.string().optional(),
-  opponentName: z.string().optional(),
-  description: z.string().optional(),
-});
+const editSchema = z
+  .object({
+    title: z.string().min(1, 'Title is required'),
+    eventType: z.enum(['practice', 'match', 'meeting', 'other']),
+    date: z.string().min(1, 'Date is required'),
+    startTime: z.string().min(1, 'Start time is required'),
+    endTime: z.string().optional(),
+    location: z.string().optional(),
+    opponentName: z.string().optional(),
+    isHome: z.string().optional(),
+    description: z.string().optional(),
+  })
+  .refine(
+    (data) => !data.endTime || data.endTime > data.startTime,
+    { message: 'End time must be after start time', path: ['endTime'] },
+  );
 
 type EditFormValues = z.infer<typeof editSchema>;
 
@@ -413,6 +419,7 @@ function EditEventForm({
       endTime: endDate ? format(endDate, 'HH:mm') : '',
       location: event.location ?? '',
       opponentName: event.opponent_name ?? '',
+      isHome: event.is_home ? 'true' : 'false',
       description: event.description ?? '',
     },
   });
@@ -436,6 +443,7 @@ function EditEventForm({
       endsAt,
       location: values.location || null,
       opponentName: values.opponentName || null,
+      isHome: values.isHome !== 'false',
       description: values.description || null,
     });
 
@@ -493,7 +501,12 @@ function EditEventForm({
             {...register('startTime')}
           />
         </Field>
-        <Field label="End time" htmlFor="endTime" optional>
+        <Field
+          label="End time"
+          htmlFor="endTime"
+          optional
+          error={errors.endTime?.message}
+        >
           <input
             id="endTime"
             type="time"
@@ -513,14 +526,42 @@ function EditEventForm({
       </Field>
 
       {eventType === 'match' && (
-        <Field label="Opponent" htmlFor="opponentName" optional>
-          <input
-            id="opponentName"
-            type="text"
-            className="input"
-            {...register('opponentName')}
-          />
-        </Field>
+        <div className="space-y-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+          <Field label="Opponent" htmlFor="opponentName" optional>
+            <input
+              id="opponentName"
+              type="text"
+              className="input"
+              placeholder="Jefferson High School"
+              {...register('opponentName')}
+            />
+          </Field>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700">
+              Game location:
+            </span>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                <input
+                  type="radio"
+                  value="true"
+                  className="accent-brand-600"
+                  {...register('isHome')}
+                />
+                Home
+              </label>
+              <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                <input
+                  type="radio"
+                  value="false"
+                  className="accent-brand-600"
+                  {...register('isHome')}
+                />
+                Away
+              </label>
+            </div>
+          </div>
+        </div>
       )}
 
       <Field label="Notes" htmlFor="description" optional>
