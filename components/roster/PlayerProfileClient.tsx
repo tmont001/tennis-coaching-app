@@ -299,47 +299,62 @@ export function PlayerProfileClient({
           <TrendingUp size={15} />
           Season Record
         </h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="text-center p-4 bg-gray-50 rounded-xl">
-            <div className="text-2xl font-bold text-gray-900">
-              {player.singles_record_w}–{player.singles_record_l}
+        {player.singles_record_w === 0 &&
+        player.singles_record_l === 0 &&
+        player.doubles_record_w === 0 &&
+        player.doubles_record_l === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">
+            No matches recorded yet.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-4 bg-gray-50 rounded-xl">
+              <div className="text-2xl font-bold text-gray-900">
+                {player.singles_record_w}–{player.singles_record_l}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">Singles W-L</div>
+              {singlesWinPct !== null && (
+                <div className="text-xs text-brand-600 font-medium mt-0.5">
+                  {singlesWinPct}% win rate
+                </div>
+              )}
+              {((player.singles_sets_won ?? 0) > 0 ||
+                (player.singles_sets_lost ?? 0) > 0) && (
+                <div className="text-xs text-gray-400 mt-1">
+                  {player.singles_sets_won ?? 0}–{player.singles_sets_lost ?? 0}{' '}
+                  sets
+                </div>
+              )}
             </div>
-            <div className="text-xs text-gray-500 mt-1">Singles W-L</div>
-            {singlesWinPct !== null && (
-              <div className="text-xs text-brand-600 font-medium mt-0.5">
-                {singlesWinPct}% win rate
+            <div className="text-center p-4 bg-gray-50 rounded-xl">
+              <div className="text-2xl font-bold text-gray-900">
+                {player.doubles_record_w}–{player.doubles_record_l}
               </div>
-            )}
-            {((player.singles_sets_won ?? 0) > 0 ||
-              (player.singles_sets_lost ?? 0) > 0) && (
-              <div className="text-xs text-gray-400 mt-1">
-                {player.singles_sets_won ?? 0}–{player.singles_sets_lost ?? 0}{' '}
-                sets
-              </div>
-            )}
-          </div>
-          <div className="text-center p-4 bg-gray-50 rounded-xl">
-            <div className="text-2xl font-bold text-gray-900">
-              {player.doubles_record_w}–{player.doubles_record_l}
+              <div className="text-xs text-gray-500 mt-1">Doubles W-L</div>
+              {((player.doubles_sets_won ?? 0) > 0 ||
+                (player.doubles_sets_lost ?? 0) > 0) && (
+                <div className="text-xs text-gray-400 mt-1">
+                  {player.doubles_sets_won ?? 0}–{player.doubles_sets_lost ?? 0}{' '}
+                  sets
+                </div>
+              )}
             </div>
-            <div className="text-xs text-gray-500 mt-1">Doubles W-L</div>
-            {((player.doubles_sets_won ?? 0) > 0 ||
-              (player.doubles_sets_lost ?? 0) > 0) && (
-              <div className="text-xs text-gray-400 mt-1">
-                {player.doubles_sets_won ?? 0}–{player.doubles_sets_lost ?? 0}{' '}
-                sets
-              </div>
-            )}
           </div>
-        </div>
+        )}
       </div>
 
-      {player.notes_public && (
+      {(player.notes_public || isCoach) && (
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-2">About</h2>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            {player.notes_public}
-          </p>
+          {player.notes_public ? (
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {player.notes_public}
+            </p>
+          ) : (
+            <p className="text-sm text-gray-400 italic">
+              No bio added — edit player to add one.
+            </p>
+          )}
         </div>
       )}
 

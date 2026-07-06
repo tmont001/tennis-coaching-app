@@ -382,6 +382,20 @@ export function RosterClient({
                   </button>
                 }
               />
+            ) : statusFilter !== 'all' ? (
+              <EmptyState
+                icon={statusFilter === 'injured' ? '🩹' : '💤'}
+                title={`No ${statusFilter} players`}
+                description={`No players are currently marked as ${statusFilter}.`}
+                action={
+                  <button
+                    onClick={() => setStatusFilter('all')}
+                    className="btn-secondary"
+                  >
+                    Clear filter
+                  </button>
+                }
+              />
             ) : (
               <EmptyState
                 icon="🎾"

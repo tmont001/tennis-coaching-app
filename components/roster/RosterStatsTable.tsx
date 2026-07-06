@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { clsx } from 'clsx';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
+import { EmptyState } from '@/components/ui';
 import type { RosterPlayer } from '@/components/roster/RosterClient';
 
 type SortKey =
@@ -81,9 +82,11 @@ export function RosterStatsTable({ players }: { players: RosterPlayer[] }) {
 
   if (activePlayers.length === 0) {
     return (
-      <div className="card p-10 text-center text-gray-400 text-sm">
-        No match results recorded yet. Log match lineups to see stats here.
-      </div>
+      <EmptyState
+        icon="📊"
+        title="No stats yet"
+        description="Log match lineups to see player stats here."
+      />
     );
   }
 
