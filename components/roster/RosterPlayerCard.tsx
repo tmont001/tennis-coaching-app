@@ -90,10 +90,10 @@ export function RosterPlayerCard({
               </span>
             )}
             {isCoach && !isClaimed && player.invited_email && (
-              <Badge variant="blue">Invite sent</Badge>
+              <Badge variant="blue">Email on file</Badge>
             )}
             {isCoach && !isClaimed && !player.invited_email && (
-              <Badge variant="gray">No invite</Badge>
+              <Badge variant="gray">No email added</Badge>
             )}
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">

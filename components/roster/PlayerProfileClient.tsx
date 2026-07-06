@@ -154,10 +154,10 @@ export function PlayerProfileClient({
                 )}
                 {isClaimed && <Badge variant="green">Account linked</Badge>}
                 {!isClaimed && isCoach && player.invited_email && (
-                  <Badge variant="blue">Invite sent</Badge>
+                  <Badge variant="blue">Email on file</Badge>
                 )}
                 {!isClaimed && isCoach && !player.invited_email && (
-                  <Badge variant="gray">No invite</Badge>
+                  <Badge variant="gray">No email added</Badge>
                 )}
               </div>
             </div>
@@ -234,13 +234,13 @@ export function PlayerProfileClient({
             <div>
               <h2 className="text-sm font-semibold text-gray-800">
                 {player.invited_email
-                  ? 'Invite sent — waiting for claim'
-                  : 'No invite — share this code'}
+                  ? 'Email on file — share this claim code with the player'
+                  : 'No email added — share this claim code manually'}
               </h2>
               <p className="text-xs text-gray-500 mt-0.5">
                 {player.invited_email
-                  ? `Invite was sent to ${player.invited_email}. Share the code below if they haven't received it.`
-                  : `Share this code with ${name.split(' ')[0]} so they can link their account.`}
+                  ? `${name.split(' ')[0]}'s email (${player.invited_email}) is saved, but no automated invite has been sent. Share the code below directly.`
+                  : `Share this code with ${name.split(' ')[0]} so they can link their account at courtside.app/claim.`}
               </p>
             </div>
             <button
