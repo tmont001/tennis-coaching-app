@@ -73,6 +73,7 @@ export function CalendarClient({
     );
 
   const tabEvents = tab === 'upcoming' ? upcoming : past;
+  const activeUpcomingCount = upcoming.filter((e) => e.status !== 'cancelled').length;
 
   // Counts per type within the current tab
   const typeCounts: Record<FilterType, number> = {
@@ -95,7 +96,7 @@ export function CalendarClient({
     <div className="space-y-5">
       <PageHeader
         title="Calendar"
-        description={`${upcoming.length} upcoming event${upcoming.length !== 1 ? 's' : ''}`}
+        description={`${activeUpcomingCount} upcoming event${activeUpcomingCount !== 1 ? 's' : ''}`}
         action={
           isCoach ? (
             <button

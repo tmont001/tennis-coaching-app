@@ -236,11 +236,13 @@ export function EventDetailClient({
         )}
 
         {/* Match-specific */}
-        {event.event_type === 'match' && event.opponent_name && (
-          <DetailRow icon={<Swords size={15} />} label="Opponent">
-            <span className="text-sm text-gray-900">
-              vs {event.opponent_name}
-            </span>
+        {event.event_type === 'match' && (
+          <DetailRow icon={<Swords size={15} />} label={event.opponent_name ? 'Opponent' : 'Match'}>
+            {event.opponent_name && (
+              <span className="text-sm text-gray-900">
+                vs {event.opponent_name}
+              </span>
+            )}
             <span className="text-xs text-gray-500">
               {event.is_home ? 'Home' : 'Away'}
             </span>
@@ -256,12 +258,18 @@ export function EventDetailClient({
       </div>
 
       {/* Description / notes */}
-      {event.description && (
+      {(event.description || isCoach) && (
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-2">Notes</h2>
-          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
-            {event.description}
-          </p>
+          {event.description ? (
+            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+              {event.description}
+            </p>
+          ) : (
+            <p className="text-sm text-gray-400 italic">
+              No notes added — edit event to add details.
+            </p>
+          )}
         </div>
       )}
 
