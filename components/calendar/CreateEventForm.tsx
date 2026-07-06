@@ -40,7 +40,7 @@ export function CreateEventForm({
   onSuccess,
 }: {
   teamId: string;
-  onSuccess: () => void;
+  onSuccess: (eventId?: string) => void;
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [locationQuery, setLocationQuery] = useState('');
@@ -110,9 +110,9 @@ export function CreateEventForm({
 
   async function onSubmit(values: FormValues) {
     setServerError(null);
-    const startsAt = `${values.date}T${values.startTime}:00`;
+    const startsAt = new Date(`${values.date}T${values.startTime}:00`).toISOString();
     const endsAt = values.endTime
-      ? `${values.date}T${values.endTime}:00`
+      ? new Date(`${values.date}T${values.endTime}:00`).toISOString()
       : null;
 
     const result = await createEvent({
@@ -133,7 +133,7 @@ export function CreateEventForm({
       setServerError(result.error);
       return;
     }
-    onSuccess();
+    onSuccess(result.data?.id);
   }
 
   return (

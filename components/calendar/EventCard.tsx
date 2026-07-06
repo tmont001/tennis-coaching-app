@@ -78,13 +78,15 @@ export function EventCard({ event }: { event: CalendarEvent }) {
               </span>
             )}
 
-            {/* Opponent for matches */}
-            {event.event_type === 'match' && event.opponent_name && (
+            {/* Opponent / home-away for matches */}
+            {event.event_type === 'match' && (
               <span className="text-xs text-gray-500 flex items-center gap-0.5">
                 <Swords size={10} />
-                vs {event.opponent_name}{' '}
-                <span className="text-gray-400">
-                  ({event.is_home ? 'Home' : 'Away'})
+                {event.opponent_name
+                  ? `vs ${event.opponent_name} `
+                  : ''}
+                <span className={event.is_home ? 'text-green-600 font-medium' : 'text-gray-400'}>
+                  {event.is_home ? 'Home' : 'Away'}
                 </span>
               </span>
             )}

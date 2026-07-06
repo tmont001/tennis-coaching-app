@@ -2,12 +2,13 @@
 // components/calendar/CalendarClient.tsx
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
 import { Plus, CalendarDays, History } from 'lucide-react';
 import { PageHeader, EmptyState, Modal } from '@/components/ui';
 import { EventCard } from '@/components/calendar/EventCard';
 import { CreateEventForm } from '@/components/calendar/CreateEventForm';
-import { isAfter, isBefore, parseISO, startOfDay } from 'date-fns';
+import { isBefore, parseISO, startOfDay } from 'date-fns';
 
 export interface CalendarEvent {
   id: string;
@@ -25,6 +26,19 @@ export interface CalendarEvent {
 }
 
 type TabMode = 'upcoming' | 'past';
+type FilterType = 'all' | 'practice' | 'match' | 'meeting' | 'other';
+
+const FILTER_CONFIG: {
+  value: FilterType;
+  label: string;
+  plural: string;
+}[] = [
+  { value: 'all', label: 'All', plural: 'events' },
+  { value: 'practice', label: 'Practices', plural: 'practices' },
+  { value: 'match', label: 'Matches', plural: 'matches' },
+  { value: 'meeting', label: 'Meetings', plural: 'meetings' },
+  { value: 'other', label: 'Other', plural: 'other events' },
+];
 
 interface CalendarClientProps {
   events: CalendarEvent[];
@@ -37,7 +51,9 @@ export function CalendarClient({
   teamId,
   isCoach,
 }: CalendarClientProps) {
+  const router = useRouter();
   const [tab, setTab] = useState<TabMode>('upcoming');
+  const [filterType, setFilterType] = useState<FilterType>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const now = startOfDay(new Date());
@@ -56,7 +72,21 @@ export function CalendarClient({
         parseISO(b.starts_at).getTime() - parseISO(a.starts_at).getTime(),
     );
 
-  const displayed = tab === 'upcoming' ? upcoming : past;
+  const tabEvents = tab === 'upcoming' ? upcoming : past;
+
+  // Counts per type within the current tab
+  const typeCounts: Record<FilterType, number> = {
+    all: tabEvents.length,
+    practice: tabEvents.filter((e) => e.event_type === 'practice').length,
+    match: tabEvents.filter((e) => e.event_type === 'match').length,
+    meeting: tabEvents.filter((e) => e.event_type === 'meeting').length,
+    other: tabEvents.filter((e) => e.event_type === 'other').length,
+  };
+
+  const displayed =
+    filterType === 'all'
+      ? tabEvents
+      : tabEvents.filter((e) => e.event_type === filterType);
 
   // Group events by date label
   const grouped = groupEventsByDate(displayed);
@@ -119,27 +149,70 @@ export function CalendarClient({
         </button>
       </div>
 
+      {/* Event type filter pills */}
+      {tabEvents.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {FILTER_CONFIG.map(({ value, label }) => {
+            const count = typeCounts[value];
+            if (value !== 'all' && count === 0) return null;
+            return (
+              <button
+                key={value}
+                onClick={() => setFilterType(value)}
+                className={clsx(
+                  'px-3 py-1.5 rounded-full text-xs font-medium transition-colors border',
+                  filterType === value
+                    ? 'bg-brand-50 text-brand-700 border-brand-200'
+                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300',
+                )}
+              >
+                {label}
+                {value !== 'all' && (
+                  <span className="ml-1 text-gray-400">{count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Event list */}
       {displayed.length === 0 ? (
-        <EmptyState
-          icon="📅"
-          title={tab === 'upcoming' ? 'No upcoming events' : 'No past events'}
-          description={
-            tab === 'upcoming' && isCoach
-              ? 'Schedule a practice, match, or meeting to get started.'
-              : undefined
-          }
-          action={
-            tab === 'upcoming' && isCoach ? (
+        filterType !== 'all' ? (
+          <EmptyState
+            icon="📅"
+            title={`No ${FILTER_CONFIG.find((f) => f.value === filterType)?.plural} ${tab === 'upcoming' ? 'scheduled' : 'recorded'}`}
+            description={undefined}
+            action={
               <button
-                onClick={() => setShowCreateModal(true)}
-                className="btn-primary"
+                onClick={() => setFilterType('all')}
+                className="btn-secondary"
               >
-                Create Event
+                Clear filter
               </button>
-            ) : undefined
-          }
-        />
+            }
+          />
+        ) : (
+          <EmptyState
+            icon="📅"
+            title={tab === 'upcoming' ? 'No upcoming events' : 'No past events'}
+            description={
+              tab === 'upcoming' && isCoach
+                ? 'Schedule a practice, match, or meeting to get started.'
+                : undefined
+            }
+            action={
+              tab === 'upcoming' && isCoach ? (
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="btn-primary"
+                >
+                  Create Event
+                </button>
+              ) : undefined
+            }
+          />
+        )
       ) : (
         <div className="space-y-6">
           {grouped.map(({ label, events: groupEvents }) => (
@@ -170,7 +243,14 @@ export function CalendarClient({
       >
         <CreateEventForm
           teamId={teamId}
-          onSuccess={() => setShowCreateModal(false)}
+          onSuccess={(eventId?: string) => {
+            setShowCreateModal(false);
+            if (eventId) {
+              router.push(`/calendar/${eventId}`);
+            } else {
+              router.refresh();
+            }
+          }}
         />
       </Modal>
     </div>
