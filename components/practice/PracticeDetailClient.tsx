@@ -12,9 +12,11 @@ import {
   Clock,
   Pencil,
   Trash2,
+  Unlink,
   Link2,
   CalendarDays,
   Check,
+  X,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { format, parseISO } from 'date-fns';
@@ -106,6 +108,9 @@ export function PracticeDetailClient({
   );
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [confirmUnlinkId, setConfirmUnlinkId] = useState<string | null>(null);
+  const [unlinkLoading, startUnlinkTransition] = useTransition();
+
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(plan.title);
   const [savingTitle, startTitleTransition] = useTransition();
@@ -179,6 +184,14 @@ export function PracticeDetailClient({
     startNotesTransition(async () => {
       await updatePracticePlan(plan.id, teamId, { notes: trimmed || null });
       setEditingNotes(false);
+    });
+  }
+
+  function handleUnlink(eventId: string) {
+    startUnlinkTransition(async () => {
+      await linkPlanToEvent(eventId, null, teamId);
+      setConfirmUnlinkId(null);
+      router.refresh();
     });
   }
 
@@ -258,17 +271,47 @@ export function PracticeDetailClient({
             <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-2">
               Linked to
             </p>
-            <div className="space-y-1">
+            <div className="space-y-2">
               {linkedEvents.map((event) => (
-                <div
-                  key={event.id}
-                  className="flex items-center gap-2 text-sm text-gray-600"
-                >
-                  <CalendarDays size={13} className="text-brand-500" />
-                  {event.title} —{' '}
-                  <span className="text-gray-400">
-                    {format(parseISO(event.starts_at), 'MMM d, yyyy')}
-                  </span>
+                <div key={event.id}>
+                  {confirmUnlinkId === event.id ? (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-gray-600 flex-1">
+                        Unlink from{' '}
+                        <span className="font-medium">{event.title}</span>?
+                      </span>
+                      <button
+                        onClick={() => handleUnlink(event.id)}
+                        disabled={unlinkLoading}
+                        className="text-xs text-red-600 hover:underline font-medium"
+                      >
+                        {unlinkLoading ? 'Unlinking…' : 'Unlink'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmUnlinkId(null)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-gray-600 group">
+                      <CalendarDays size={13} className="text-brand-500 flex-shrink-0" />
+                      <span className="flex-1">
+                        {event.title} —{' '}
+                        <span className="text-gray-400">
+                          {format(parseISO(event.starts_at), 'MMM d, yyyy')}
+                        </span>
+                      </span>
+                      <button
+                        onClick={() => setConfirmUnlinkId(event.id)}
+                        className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-400 transition-colors"
+                        title="Unlink this event"
+                      >
+                        <Unlink size={12} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

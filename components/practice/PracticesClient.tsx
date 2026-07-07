@@ -16,7 +16,7 @@ export interface PracticePlanSummary {
   notes: string | null;
   duration_min: number | null;
   created_at: string;
-  practice_plan_blocks: { count: number }[];
+  practice_plan_blocks: { duration_min: number }[];
 }
 
 export function PracticesClient({
@@ -75,7 +75,11 @@ export function PracticesClient({
       ) : (
         <div className="space-y-2">
           {plans.map((plan) => {
-            const blockCount = plan.practice_plan_blocks?.[0]?.count ?? 0;
+            const blockCount = plan.practice_plan_blocks.length;
+            const totalDuration = plan.practice_plan_blocks.reduce(
+              (sum, b) => sum + b.duration_min,
+              0,
+            );
             const timeAgo = formatDistanceToNow(parseISO(plan.created_at), {
               addSuffix: true,
             });
@@ -100,10 +104,10 @@ export function PracticesClient({
                     <span className="text-xs text-gray-500">
                       {blockCount} block{blockCount !== 1 ? 's' : ''}
                     </span>
-                    {plan.duration_min && (
+                    {totalDuration > 0 && (
                       <span className="text-xs text-gray-400 flex items-center gap-0.5">
                         <Clock size={10} />
-                        {plan.duration_min} min
+                        {totalDuration} min
                       </span>
                     )}
                     <span className="text-xs text-gray-400">{timeAgo}</span>

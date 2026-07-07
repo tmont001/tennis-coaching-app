@@ -12,7 +12,6 @@ import { createPracticePlan } from '@/actions/practices';
 const schema = z.object({
   title: z.string().min(1, 'Title is required'),
   notes: z.string().optional(),
-  durationMin: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -32,7 +31,7 @@ export function CreatePlanForm({
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { title: '', notes: '', durationMin: '' },
+    defaultValues: { title: '', notes: '' },
   });
 
   async function onSubmit(values: FormValues) {
@@ -41,7 +40,7 @@ export function CreatePlanForm({
       teamId,
       title: values.title,
       notes: values.notes || null,
-      durationMin: values.durationMin ? parseInt(values.durationMin) : null,
+      durationMin: null,
     });
 
     if (result.error) {
@@ -67,23 +66,6 @@ export function CreatePlanForm({
           placeholder="Tuesday Afternoon Practice"
           {...register('title')}
         />
-      </Field>
-
-      <Field label="Total duration" htmlFor="durationMin" optional>
-        <div className="relative">
-          <input
-            id="durationMin"
-            type="number"
-            className="input pr-12"
-            placeholder="90"
-            min={1}
-            max={480}
-            {...register('durationMin')}
-          />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
-            min
-          </span>
-        </div>
       </Field>
 
       <Field label="Notes" htmlFor="notes" optional>

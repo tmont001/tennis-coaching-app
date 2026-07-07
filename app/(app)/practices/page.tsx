@@ -37,7 +37,7 @@ export default async function PracticesPage() {
       notes,
       duration_min,
       created_at,
-      practice_plan_blocks ( count )
+      practice_plan_blocks ( duration_min )
     `,
     )
     .eq('team_id', membership.team_id)
