@@ -10,7 +10,6 @@ import {
   ArrowLeft,
   Plus,
   Clock,
-  GripVertical,
   Pencil,
   Trash2,
   Link2,
@@ -111,6 +110,10 @@ export function PracticeDetailClient({
   const [titleValue, setTitleValue] = useState(plan.title);
   const [savingTitle, startTitleTransition] = useTransition();
 
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesValue, setNotesValue] = useState(plan.notes ?? '');
+  const [savingNotes, startNotesTransition] = useTransition();
+
   // Calculate total duration from blocks
   const totalDuration = blocks.reduce((sum, b) => sum + b.duration_min, 0);
 
@@ -164,6 +167,18 @@ export function PracticeDetailClient({
     startTitleTransition(async () => {
       await updatePracticePlan(plan.id, teamId, { title: titleValue.trim() });
       setEditingTitle(false);
+    });
+  }
+
+  function saveNotes() {
+    const trimmed = notesValue.trim();
+    if (trimmed === (plan.notes ?? '')) {
+      setEditingNotes(false);
+      return;
+    }
+    startNotesTransition(async () => {
+      await updatePracticePlan(plan.id, teamId, { notes: trimmed || null });
+      setEditingNotes(false);
     });
   }
 
@@ -260,17 +275,65 @@ export function PracticeDetailClient({
           </div>
         )}
 
-        {/* Plan notes */}
-        {plan.notes && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1">
+        {/* Plan notes — editable */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">
               Notes
             </p>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              {plan.notes}
-            </p>
+            {!editingNotes && (
+              <button
+                onClick={() => setEditingNotes(true)}
+                className="text-xs text-brand-600 hover:underline font-medium"
+              >
+                {notesValue ? 'Edit' : 'Add'}
+              </button>
+            )}
           </div>
-        )}
+
+          {editingNotes ? (
+            <div className="space-y-2">
+              <textarea
+                value={notesValue}
+                onChange={(e) => setNotesValue(e.target.value)}
+                rows={3}
+                className="input resize-none w-full text-sm"
+                placeholder="Focus areas, goals, or reminders for this practice…"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setEditingNotes(false);
+                    setNotesValue(plan.notes ?? '');
+                  }
+                }}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={saveNotes}
+                  disabled={savingNotes}
+                  className="btn-primary text-sm py-1.5 px-3"
+                >
+                  {savingNotes ? 'Saving…' : 'Save'}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingNotes(false);
+                    setNotesValue(plan.notes ?? '');
+                  }}
+                  className="btn-secondary text-sm py-1.5 px-3"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : notesValue ? (
+            <p className="text-sm text-gray-600 leading-relaxed">{notesValue}</p>
+          ) : (
+            <p className="text-sm text-gray-400 italic">
+              No notes added — click Add to include focus areas.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Blocks section */}
@@ -365,8 +428,8 @@ export function PracticeDetailClient({
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Actions — always visible on mobile, hover-only on desktop */}
+                  <div className="flex items-center gap-1 flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => setEditingBlock(block)}
                       className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
