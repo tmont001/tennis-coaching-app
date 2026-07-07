@@ -305,15 +305,28 @@ export function MatchDetailClient({
           </div>
         )}
 
+        {/* Pending nudge — coach only */}
+        {match.result === 'pending' && isCoach && (
+          <p className="text-xs text-gray-400 mt-3">
+            Result not yet recorded — edit to log the outcome.
+          </p>
+        )}
+
         {/* Notes */}
-        {match.notes && (
+        {(match.notes || isCoach) && (
           <div className="mt-4 pt-4 border-t border-gray-100">
             <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1">
               Notes
             </p>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              {match.notes}
-            </p>
+            {match.notes ? (
+              <p className="text-sm text-gray-600 leading-relaxed">
+                {match.notes}
+              </p>
+            ) : (
+              <p className="text-sm text-gray-400 italic">
+                No match notes — edit to add.
+              </p>
+            )}
           </div>
         )}
       </div>

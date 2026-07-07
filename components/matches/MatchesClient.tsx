@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Trophy, Minus, Equal } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { format, parseISO } from 'date-fns';
 import {
@@ -31,31 +31,11 @@ export interface Match {
 }
 
 const RESULT_CONFIG = {
-  win: {
-    label: 'W',
-    color: 'bg-green-100 text-green-800 border-green-200',
-    icon: Trophy,
-  },
-  loss: {
-    label: 'L',
-    color: 'bg-red-100 text-red-700 border-red-200',
-    icon: Minus,
-  },
-  tie: {
-    label: 'T',
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    icon: Equal,
-  },
-  cancelled: {
-    label: '–',
-    color: 'bg-gray-100 text-gray-500 border-gray-200',
-    icon: Minus,
-  },
-  pending: {
-    label: '?',
-    color: 'bg-gray-100 text-gray-400 border-gray-200',
-    icon: Minus,
-  },
+  win:       { label: 'W', color: 'bg-green-100 text-green-800 border-green-200',  sublabel: null },
+  loss:      { label: 'L', color: 'bg-red-100 text-red-700 border-red-200',         sublabel: null },
+  tie:       { label: 'T', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', sublabel: null },
+  cancelled: { label: '–', color: 'bg-gray-100 text-gray-500 border-gray-200',      sublabel: 'Cancelled' },
+  pending:   { label: '?', color: 'bg-gray-100 text-gray-400 border-gray-200',      sublabel: 'Pending' },
 };
 
 export function MatchesClient({
@@ -169,13 +149,20 @@ export function MatchesClient({
               <Link key={match.id} href={`/matches/${match.id}`}>
                 <div className="card px-4 py-3 flex items-center gap-3 group hover:border-brand-300 hover:shadow-sm transition-all cursor-pointer">
                   {/* Result badge */}
-                  <div
-                    className={clsx(
-                      'w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold border flex-shrink-0',
-                      config.color,
+                  <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+                    <div
+                      className={clsx(
+                        'w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold border',
+                        config.color,
+                      )}
+                    >
+                      {config.label}
+                    </div>
+                    {config.sublabel && (
+                      <span className="text-xs text-gray-400 leading-none">
+                        {config.sublabel}
+                      </span>
                     )}
-                  >
-                    {config.label}
                   </div>
 
                   {/* Match info */}
@@ -199,9 +186,9 @@ export function MatchesClient({
                     </div>
                   </div>
 
-                  {/* Coach actions */}
+                  {/* Coach actions — always visible on mobile, hover-revealed on desktop */}
                   {isCoach && (
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                    <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0">
                       <button
                         onClick={() => setEditingMatch(match)}
                         className="text-xs text-gray-400 hover:text-brand-600 px-2 py-1 rounded hover:bg-brand-50 transition-colors"
