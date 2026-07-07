@@ -12,7 +12,6 @@ import {
   Clock,
   Pencil,
   Trash2,
-  Unlink,
   Link2,
   CalendarDays,
   Check,
@@ -295,7 +294,7 @@ export function PracticeDetailClient({
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 group">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
                       <CalendarDays size={13} className="text-brand-500 flex-shrink-0" />
                       <span className="flex-1">
                         {event.title} —{' '}
@@ -305,10 +304,9 @@ export function PracticeDetailClient({
                       </span>
                       <button
                         onClick={() => setConfirmUnlinkId(event.id)}
-                        className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-400 transition-colors"
-                        title="Unlink this event"
+                        className="text-xs text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
                       >
-                        <Unlink size={12} />
+                        Unlink
                       </button>
                     </div>
                   )}

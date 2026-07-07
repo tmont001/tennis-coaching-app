@@ -19,6 +19,29 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+const BLOCK_TYPE_SUGGESTIONS: Record<string, string[]> = {
+  warmup: [
+    'Dynamic Stretching',
+    'Light Jogging',
+    'Mini Tennis',
+    'Footwork Ladder',
+  ],
+  drill: [
+    'Cross-Court Forehands',
+    'Serve Practice',
+    'Volley Drill',
+    'Approach Shots',
+  ],
+  game: [
+    'King of the Court',
+    'Live Ball Rally',
+    'Tiebreak Sets',
+    'Round Robin',
+  ],
+  cooldown: ['Static Stretching', 'Team Huddle', 'Recovery Jog'],
+  other: ['Film Review', 'Strategy Discussion', 'Fitness Testing'],
+};
+
 export function EditBlockForm({
   block,
   teamId,
@@ -33,6 +56,7 @@ export function EditBlockForm({
   const {
     register,
     handleSubmit,
+    watch,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
@@ -44,6 +68,9 @@ export function EditBlockForm({
       durationMin: String(block.duration_min),
     },
   });
+
+  const blockType = watch('blockType');
+  const suggestions = BLOCK_TYPE_SUGGESTIONS[blockType] ?? [];
 
   async function onSubmit(values: FormValues) {
     setServerError(null);
@@ -93,6 +120,20 @@ export function EditBlockForm({
           className="input"
           {...register('title')}
         />
+        {suggestions.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-1.5">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setValue('title', s)}
+                className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-600 hover:bg-brand-100 hover:text-brand-700 transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
       </Field>
 
       <Field
