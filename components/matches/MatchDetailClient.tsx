@@ -2,7 +2,7 @@
 // components/matches/MatchDetailClient.tsx
 // Full match detail with inline lineup editor.
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useRef, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -23,6 +23,7 @@ import { LineupSlot } from '@/components/matches/LineupSlot';
 import { deleteMatch } from '@/actions/matches';
 import {
   copyLineupFromMatch,
+  saveLineup,
   saveLineupCopyPreference,
 } from '@/actions/lineup';
 
@@ -96,7 +97,7 @@ export function MatchDetailClient({
   players: LineupPlayer[];
   teamId: string;
   isCoach: boolean;
-  previousMatch: { id: string; opponentName: string } | null;
+  previousMatch: { id: string; opponentName: string; matchDate: string } | null;
   skipLineupCopyPrompt: boolean;
 }) {
   const router = useRouter();
@@ -108,6 +109,8 @@ export function MatchDetailClient({
   const [skipCopyPrompt, setSkipCopyPrompt] = useState(skipLineupCopyPrompt);
   const [copyLoading, setCopyLoading] = useState(false);
   const [isCopying, startCopyTransition] = useTransition();
+  const [editingLineup, setEditingLineup] = useState(false);
+  const [savingLineup, startSaveLineupTransition] = useTransition();
 
   const resultConfig = RESULT_CONFIG[match.result];
   const formattedDate = format(
@@ -122,6 +125,16 @@ export function MatchDetailClient({
       setShowCopyPrompt(true);
     }
   }, []);
+
+  // Sync currentLines when server re-fetches lines (e.g. after copy lineup)
+  const isMounted = useRef(false);
+  useEffect(() => {
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+    setCurrentLines(lines);
+  }, [lines]);
 
   // Build the expected lineup structure from team format
   function buildEmptyLineup(): MatchLine[] {
@@ -200,6 +213,23 @@ export function MatchDetailClient({
     if (!result.error) {
       router.refresh();
     }
+  }
+
+  function handleSaveLineup(
+    slots: Array<{
+      lineType: 'singles' | 'doubles';
+      position: number;
+      player1Id: string | null;
+      player2Id: string | null;
+    }>,
+  ) {
+    startSaveLineupTransition(async () => {
+      const result = await saveLineup(match.id, teamId, slots);
+      if (!result.error) {
+        setEditingLineup(false);
+        router.refresh();
+      }
+    });
   }
 
   function handleLineUpdated(updated: MatchLine) {
@@ -341,8 +371,9 @@ export function MatchDetailClient({
                 Copy lineup from last match?
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
-                Use the same players from your match vs{' '}
-                {previousMatch.opponentName}. You can adjust after copying.
+                vs {previousMatch.opponentName} ·{' '}
+                {format(parseISO(previousMatch.matchDate), 'MMM d')} — use the
+                same players and adjust after copying.
               </p>
               <label className="flex items-center gap-2 mt-2 cursor-pointer">
                 <input
@@ -385,57 +416,76 @@ export function MatchDetailClient({
             <Users size={14} className="text-brand-500" />
             Lineup
           </h2>
-          {isCoach &&
-            previousMatch &&
-            !showCopyPrompt &&
-            currentLines.length > 0 && (
+          {isCoach && !editingLineup && (
+            <div className="flex items-center gap-3">
+              {previousMatch && !showCopyPrompt && currentLines.length > 0 && (
+                <button
+                  onClick={() => setShowCopyPrompt(true)}
+                  className="text-xs text-brand-600 hover:underline"
+                >
+                  Copy from previous
+                </button>
+              )}
               <button
-                onClick={() => setShowCopyPrompt(true)}
-                className="text-xs text-brand-600 hover:underline"
+                onClick={() => setEditingLineup(true)}
+                className="btn-secondary text-xs py-1.5 px-3"
               >
-                Copy from previous match
+                Set Lineup
               </button>
-            )}
+            </div>
+          )}
         </div>
 
-        {/* Singles */}
-        {singlesLines.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-              Singles
-            </p>
-            {singlesLines.map((line) => (
-              <LineupSlot
-                key={`singles-${line.position}`}
-                line={line}
-                matchId={match.id}
-                teamId={teamId}
-                players={players}
-                isCoach={isCoach}
-                onUpdated={handleLineUpdated}
-              />
-            ))}
-          </div>
-        )}
+        {editingLineup ? (
+          <LineupSetupPanel
+            mergedLines={mergedLines}
+            players={players}
+            onSave={handleSaveLineup}
+            onCancel={() => setEditingLineup(false)}
+            saving={savingLineup}
+          />
+        ) : (
+          <>
+            {/* Singles */}
+            {singlesLines.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  Singles
+                </p>
+                {singlesLines.map((line) => (
+                  <LineupSlot
+                    key={`singles-${line.position}`}
+                    line={line}
+                    matchId={match.id}
+                    teamId={teamId}
+                    players={players}
+                    isCoach={isCoach}
+                    onUpdated={handleLineUpdated}
+                  />
+                ))}
+              </div>
+            )}
 
-        {/* Doubles */}
-        {doublesLines.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-2">
-              Doubles
-            </p>
-            {doublesLines.map((line) => (
-              <LineupSlot
-                key={`doubles-${line.position}`}
-                line={line}
-                matchId={match.id}
-                teamId={teamId}
-                players={players}
-                isCoach={isCoach}
-                onUpdated={handleLineUpdated}
-              />
-            ))}
-          </div>
+            {/* Doubles */}
+            {doublesLines.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-2">
+                  Doubles
+                </p>
+                {doublesLines.map((line) => (
+                  <LineupSlot
+                    key={`doubles-${line.position}`}
+                    line={line}
+                    matchId={match.id}
+                    teamId={teamId}
+                    players={players}
+                    isCoach={isCoach}
+                    onUpdated={handleLineUpdated}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -466,6 +516,201 @@ export function MatchDetailClient({
         confirmLabel="Delete match"
         confirmVariant="danger"
       />
+    </div>
+  );
+}
+
+// ── Batch lineup setup panel ──────────────────────────────────
+interface LineupDraftSlot {
+  lineType: 'singles' | 'doubles';
+  position: number;
+  player1Id: string;
+  player2Id: string;
+}
+
+function LineupSetupPanel({
+  mergedLines,
+  players,
+  onSave,
+  onCancel,
+  saving,
+}: {
+  mergedLines: MatchLine[];
+  players: LineupPlayer[];
+  onSave: (slots: Array<{ lineType: 'singles' | 'doubles'; position: number; player1Id: string | null; player2Id: string | null }>) => void;
+  onCancel: () => void;
+  saving: boolean;
+}) {
+  const [draft, setDraft] = useState<LineupDraftSlot[]>(
+    mergedLines.map((l) => ({
+      lineType: l.line_type,
+      position: l.position,
+      player1Id: l.player1?.id ?? '',
+      player2Id: l.player2?.id ?? '',
+    })),
+  );
+
+  const singlesSlots = draft.filter((d) => d.lineType === 'singles');
+  const doublesSlots = draft.filter((d) => d.lineType === 'doubles');
+
+  function updateSlot(
+    lineType: 'singles' | 'doubles',
+    position: number,
+    field: 'player1Id' | 'player2Id',
+    value: string,
+  ) {
+    setDraft((prev) =>
+      prev.map((s) =>
+        s.lineType === lineType && s.position === position
+          ? { ...s, [field]: value }
+          : s,
+      ),
+    );
+  }
+
+  function getLabel(p: LineupPlayer) {
+    const name = p.profiles?.full_name ?? p.display_name ?? 'Player';
+    return p.ladder_rank ? `#${p.ladder_rank} ${name}` : name;
+  }
+
+  function PlayerDropdown({
+    label,
+    value,
+    lineType,
+    position,
+    field,
+  }: {
+    label: string;
+    value: string;
+    lineType: 'singles' | 'doubles';
+    position: number;
+    field: 'player1Id' | 'player2Id';
+  }) {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <label className="text-xs text-gray-500 font-medium">{label}</label>
+          {value && (
+            <button
+              type="button"
+              onClick={() => updateSlot(lineType, position, field, '')}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        <select
+          value={value}
+          onChange={(e) => updateSlot(lineType, position, field, e.target.value)}
+          className="input text-sm"
+        >
+          <option value="">— Unassigned —</option>
+          {players.map((p) => (
+            <option key={p.id} value={p.id}>
+              {getLabel(p)}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card p-4 space-y-5 border-brand-200">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold text-gray-700">Set Lineup</span>
+        <button
+          onClick={onCancel}
+          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+
+      {singlesSlots.length > 0 && (
+        <div className="space-y-4">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            Singles
+          </p>
+          {singlesSlots.map((slot) => (
+            <div key={`s-${slot.position}`} className="space-y-2">
+              <p className="text-xs font-medium text-gray-600">
+                Singles {slot.position}
+              </p>
+              <PlayerDropdown
+                label="Player"
+                value={slot.player1Id}
+                lineType={slot.lineType}
+                position={slot.position}
+                field="player1Id"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {doublesSlots.length > 0 && (
+        <div className="space-y-4">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            Doubles
+          </p>
+          {doublesSlots.map((slot) => (
+            <div key={`d-${slot.position}`} className="space-y-2">
+              <p className="text-xs font-medium text-gray-600">
+                Doubles {slot.position}
+              </p>
+              <PlayerDropdown
+                label="Player 1"
+                value={slot.player1Id}
+                lineType={slot.lineType}
+                position={slot.position}
+                field="player1Id"
+              />
+              <PlayerDropdown
+                label="Player 2"
+                value={slot.player2Id}
+                lineType={slot.lineType}
+                position={slot.position}
+                field="player2Id"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-3 pt-1">
+        <button
+          onClick={onCancel}
+          disabled={saving}
+          className="btn-secondary flex-1 text-sm"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={() =>
+            onSave(
+              draft.map((s) => ({
+                lineType: s.lineType,
+                position: s.position,
+                player1Id: s.player1Id || null,
+                player2Id: s.player2Id || null,
+              })),
+            )
+          }
+          disabled={saving}
+          className="btn-primary flex-1 text-sm flex items-center justify-center gap-1.5"
+        >
+          {saving ? (
+            <>
+              <Loader2 size={14} className="animate-spin" />
+              Saving…
+            </>
+          ) : (
+            'Save Lineup'
+          )}
+        </button>
+      </div>
     </div>
   );
 }

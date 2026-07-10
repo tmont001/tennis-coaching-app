@@ -75,8 +75,6 @@ export function LineupSlot({
   const [editing, setEditing] = useState(false);
   const [saving, startSave] = useTransition();
 
-  const [selectedPlayer1, setSelectedPlayer1] = useState(line.player1?.id ?? "");
-  const [selectedPlayer2, setSelectedPlayer2] = useState(line.player2?.id ?? "");
   const [selectedResult, setSelectedResult] = useState<string>(line.result ?? "");
   const [sets, setSets] = useState<SetScore[]>(parseScoreString(line.score));
 
@@ -90,11 +88,6 @@ export function LineupSlot({
   // Sets summary for display
   const setsWonDisplay = line.sets_won ?? null;
   const setsLostDisplay = line.sets_lost ?? null;
-
-  function getPlayerLabel(p: LineupPlayer) {
-    const name = p.profiles?.full_name ?? p.display_name ?? "Player";
-    return p.ladder_rank ? `#${p.ladder_rank} ${name}` : name;
-  }
 
   function addSet() {
     setSets((prev) => [...prev, { ours: "", theirs: "" }]);
@@ -120,8 +113,8 @@ export function LineupSlot({
         teamId,
         lineType: line.line_type,
         position: line.position,
-        player1Id: selectedPlayer1 || null,
-        player2Id: isDoubles ? (selectedPlayer2 || null) : null,
+        player1Id: line.player1?.id ?? null,
+        player2Id: line.player2?.id ?? null,
         result: (selectedResult as "win" | "loss" | "not_played") || null,
         score: scoreString || null,
         setsWon: scoreString ? setsWon : null,
@@ -129,17 +122,8 @@ export function LineupSlot({
       });
 
       if (!result.error) {
-        const p1 = players.find((p) => p.id === selectedPlayer1) ?? null;
-        const p2 = players.find((p) => p.id === selectedPlayer2) ?? null;
-
         onUpdated({
           ...line,
-          player1: p1
-            ? { id: p1.id, display_name: p1.display_name, profiles: p1.profiles ? { full_name: p1.profiles.full_name } : null }
-            : null,
-          player2: p2
-            ? { id: p2.id, display_name: p2.display_name, profiles: p2.profiles ? { full_name: p2.profiles.full_name } : null }
-            : null,
           result: (selectedResult as "win" | "loss" | "not_played") || null,
           score: scoreString || null,
           sets_won: scoreString ? setsWon : null,
@@ -151,8 +135,6 @@ export function LineupSlot({
   }
 
   function handleCancel() {
-    setSelectedPlayer1(line.player1?.id ?? "");
-    setSelectedPlayer2(line.player2?.id ?? "");
     setSelectedResult(line.result ?? "");
     setSets(parseScoreString(line.score));
     setEditing(false);
@@ -233,44 +215,6 @@ export function LineupSlot({
             </button>
           </div>
 
-          {/* Player 1 */}
-          <div className="space-y-1">
-            <label className="text-xs text-gray-500 font-medium">
-              {isDoubles ? "Player 1" : "Player"}
-            </label>
-            <select
-              value={selectedPlayer1}
-              onChange={(e) => setSelectedPlayer1(e.target.value)}
-              className="input text-sm"
-            >
-              <option value="">— Unassigned —</option>
-              {players.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {getPlayerLabel(p)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Player 2 — doubles only */}
-          {isDoubles && (
-            <div className="space-y-1">
-              <label className="text-xs text-gray-500 font-medium">Player 2</label>
-              <select
-                value={selectedPlayer2}
-                onChange={(e) => setSelectedPlayer2(e.target.value)}
-                className="input text-sm"
-              >
-                <option value="">— Unassigned —</option>
-                {players.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {getPlayerLabel(p)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
           {/* Result */}
           <div className="space-y-1">
             <label className="text-xs text-gray-500 font-medium">Result</label>
@@ -318,12 +262,14 @@ export function LineupSlot({
                 )}
               </div>
             ))}
-            <button
-              onClick={addSet}
-              className="flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600 transition-colors mt-1"
-            >
-              <Plus size={12} /> Add set
-            </button>
+            {sets.length < 5 && (
+              <button
+                onClick={addSet}
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600 transition-colors mt-1"
+              >
+                <Plus size={12} /> Add set
+              </button>
+            )}
           </div>
 
           {/* Save */}
@@ -333,7 +279,7 @@ export function LineupSlot({
             className="btn-primary w-full flex items-center justify-center gap-1 text-sm"
           >
             <Check size={14} />
-            {saving ? "Saving…" : "Save"}
+            {saving ? "Saving…" : "Save Lineup"}
           </button>
         </div>
       )}

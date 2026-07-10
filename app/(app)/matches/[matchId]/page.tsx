@@ -117,7 +117,11 @@ export default async function MatchDetailPage({
       isCoach={membership.role === 'coach'}
       previousMatch={
         previousMatchHasLineup && previousMatch
-          ? { id: previousMatch.id, opponentName: previousMatch.opponent_name }
+          ? {
+              id: previousMatch.id,
+              opponentName: previousMatch.opponent_name,
+              matchDate: previousMatch.match_date,
+            }
           : null
       }
       skipLineupCopyPrompt={skipLineupCopyPrompt}

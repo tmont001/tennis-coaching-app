@@ -18,6 +18,49 @@ async function verifyCoach(supabase: any, teamId: string, userId: string) {
   return data?.role === 'coach';
 }
 
+// ── Save full lineup (player assignments only) ────────────────
+// Upserts all courts in one call. Only sets player1_id and player2_id —
+// result, score, and sets are left untouched on existing rows.
+export async function saveLineup(
+  matchId: string,
+  teamId: string,
+  slots: Array<{
+    lineType: 'singles' | 'doubles';
+    position: number;
+    player1Id: string | null;
+    player2Id: string | null;
+  }>,
+) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const isCoach = await verifyCoach(supabase as any, teamId, user.id);
+  if (!isCoach) return { error: 'Only coaches can edit lineups' };
+
+  if (slots.length === 0) return { data: { saved: 0 } };
+
+  const rows = slots.map((s) => ({
+    match_id: matchId,
+    team_id: teamId,
+    line_type: s.lineType,
+    position: s.position,
+    player1_id: s.player1Id || null,
+    player2_id: s.player2Id || null,
+  }));
+
+  const { error } = await (supabase as any)
+    .from('match_lines')
+    .upsert(rows, { onConflict: 'match_id,line_type,position' });
+
+  if (error) return { error: 'Failed to save lineup.' };
+
+  revalidatePath(`/matches/${matchId}`);
+  return { data: { saved: rows.length } };
+}
+
 // ── Upsert a single match line ────────────────────────────────
 const lineSchema = z.object({
   matchId: z.string().uuid(),
